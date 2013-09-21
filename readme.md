@@ -4,7 +4,7 @@ I've never done anything useful with C, but I read a lot about C, and play aroun
 
 My programming ability is severely damaged by my inability to work with sub-optimal codebases. I think the best engineers are those who can make do with what they're given; I can't, unless it's for work or school.
 
-Anyway, this document describes my favorite C programming practices. I usually prioritize simplicity over maintainability over readability over speed. Discussion, issues and pull-requests are very welcome.
+Anyway, this document describes my favorite C programming practices. I usually prioritize simplicity over maintainability over readability over speed. Many of these concepts are just good programming practices, and apply outside of C programming. Discussion, issues and pull-requests are very welcome.
 
 **This is a work-in-progress.**
 
@@ -18,7 +18,7 @@ a = b = 0;                      // Good
 if ( ( x = get_x() ) == 0 )     // Bad
 ```
 
-### Rarely put function calls in conditional expressions
+### Only put function calls in conditional expressions if it reads naturally
 
 Assign the function call to a variable to describe what it is, even if the variable is as simple as an `int rv`.
 
@@ -49,8 +49,15 @@ int accept_request( int listenfd ) {
 }
 
 int handle_request( int listenfd ) {
-    int 
+    int reqfd = accept_request( listenfd );
+    if ( reqfd == -1 ) {
+        perror( "accept_request" );
+        return 0;
+    }
 
+    pid_t child_pid = fork();
+    // ... stuff not involving `addr`
+}
 ```
 
 ### Declare variables where they're used
@@ -90,6 +97,8 @@ typedef struct {
     unsigned long population;
 } City;
 ```
+
+### No mutable global variables if you can help it (you probably can)
 
 ### Use and abuse designated `struct` initializers
 
