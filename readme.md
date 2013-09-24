@@ -31,10 +31,10 @@ The idea of tabs was that we'd use tabs for indentation levels, and spaces for a
 
 ``` c
 int main( void ) {
-	if ( pigs_can_fly() ) {
-		developers_can_use_tabs( "and align columns "
-		                         "with spaces!" );
-	}
+|tab   |if ( pigs_can_fly() ) {
+|tab   ||tab   |developers_can_use_tabs( "and align columns "
+|tab   ||tab   |                         "with spaces!" );
+|tab   |}
 }
 ```
 
