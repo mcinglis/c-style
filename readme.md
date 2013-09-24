@@ -114,6 +114,14 @@ If the scope fits on a screen, and the variable is used in a lot of places, and 
 
 
 
+#### Be consistent in your variable names across functions
+
+Consistency helps your readers understand what's happening. Using different names for the same values in functions is suspicious, and forces them to check that nothing weird is happening.
+
+Also, don't use parameter names like `self` or `this` for object-oriented functions because it doesn't make sense. C only has functions, so name the parameters what they are. I consider C's separation of data and functionality one of its best features. Haskell, at the forefront of language design, makes the same choice. Try to embrace and appreciate what C offers, rather than grafting other paradigms onto it.
+
+
+
 #### Use `bool` from `stdbool.h` whenever you have a binary value
 
 ``` c
@@ -123,7 +131,7 @@ int print_steps = 0;             // Bad - is this counting steps?
 
 
 
-#### Be explicit when expecting boolean values
+#### Use explicit comparisons when expecting boolean values
 
 Explicit comparisons tell the reader what they're working with, because it's not always obvious in C. Are we working with counts or booleans or pointers?
 
@@ -233,7 +241,7 @@ int x = ( a * b ) + ( c / d );  // Good
 &( ( ( struct sockaddr_in* ) sa )->sin_addr );  // Good
 ```
 
-Skipping the operators when combining the equality and boolean operators is fine, because readers are probably used to that.
+You can and should make exceptions for commonly-seen combinations of operations. For example, skipping the operators when combining the equality and boolean operators is fine, because readers are probably used to that.
 
 ``` c
 // Bad
@@ -279,7 +287,7 @@ And limit yourself to a maximum of one blank line within functions - but, try to
 
 
 
-#### Minimize the scope of variables by extracting functions
+#### Minimize the scope of variables
 
 If a variable is only used in a contiguous sequence of lines, and only a single value is used after that sequence, then that's a great candidate for extracting to a function.
 
@@ -297,6 +305,32 @@ int handle_request( const int listenfd ) {
 ```
 
 If the body of `accept_request` were left in `handle_request`, then the `addr` variable will be in the scope for the remainder of the `handle_request` function even though it's only used for getting the `reqfd`. This kind of thing adds to the cognitive load of understanding a function, and should be fixed wherever possible.
+
+Another tactic to limit the exposure of variables is to break apart complex expressions into blocks, like so:
+
+``` c
+// Rather than:
+bool Trie_has( const Trie trie, const char * word ) {
+    const char c = word[ 0 ];
+    const Trie* child = Trie_child( trie, c );
+    return c == '\0'
+           || ( child != NULL
+                && Trie_has( *child, word + 1 ) );
+}
+
+// child is only used for the second part of the conditional, so we
+// can limit its exposure like so:
+bool Trie_has( const Trie trie, const char * word ) {
+    const char c = word[ 0 ];
+    if ( c == '\0' ) {
+        return true;
+    } else {
+        const Trie* child = Trie_child( trie, c );
+        return child != NULL
+            && Trie_has( *child, word + 1 );
+    }
+}
+```
 
 
 
@@ -359,6 +393,18 @@ bool Banana_is_ripe( Banana *b ); // just reads - no need for a pointer!
 
 Yes, due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. First, compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler will only copy that field. Second, giving the function frame the actual data rather than a pointer saves having to fetch that remote memory first. Third, most structs are only a few bytes, so copying is negligible.
 
+If a function can access a pointer, account for that pointee changing. This means that structs with pointer members are liable to "changing" even if they were passed as a value into the function.
+
+``` c
+typedef struct { char **cities; } Country;
+
+// May add and remove cities of c, even though it doesn't
+// have a Country pointer.
+void Country_load_cities( Country c );
+```
+
+You should consider that structs with pointer members are liable 
+
 If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can usually tell what a function does just by reading its signature. It's almost as good as Haskell!
 
 
@@ -368,8 +414,30 @@ If you're reading a codebase that sticks to this rule, and its functions and typ
 If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. There are only three reasons to use typecasts:
 
 - performing true division (not integer division) of `int` expressions
-- making an array index an `int`
-- using compound literals of arrays
+- making an array index an `int`, but you can do this with assignment anyway
+- using compound literals for structs and arrays; C doesn't infer them :(
+
+
+
+#### Always use `double` instead of `float`
+
+``` c
+// from 21st Century C, by Ben Klemens
+printf( "%f\n", ( float )333334126.98 );    // 333334112.000000
+printf( "%f\n", ( float )333334125.31 );    // 333334112.000000
+```
+
+Space isn't an issue anymore, but floating-point errors still are. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. `float` is another thing we just don't need anymore, so don't use it and your C programming will be simpler.
+
+Ben Klemens says there is less of imperative to use `long`s over `int`s, but it's still something you should think about:
+
+> Should we use long `int`s everywhere integers are used? The case isn't quite
+> as open and shut. A `double` representation of π is more precise than a
+> `float` representation of π, even though we’re in the ballpark of three; both
+> `int` and `long` representations of numbers up to a few billion are precisely
+> identical. The only issue is overflow, [when `int` will be entirely wrong.]
+
+As well as this argument, I'm partial to using `int` (for now) over `long` just because it reads better. Also, `int` plays a large role in idiomatic C (e.g. return codes), so it would be quite jarring to ditch completely in favor of `long`.
 
 
 
@@ -378,12 +446,13 @@ If it's valid to assign a value of one type to a variable of another type, then 
 ``` c
 typedef struct {
     char *name;
+    char *state;
     char *country;
     long population;
 } City;
 ```
 
-My only exception is that I don't `typedef` structs used for named parameters (see below), because the CamelCase naming would be weird.
+I don't `typedef` structs used for named parameters (see below), however, because the CamelCase naming would be weird.
 
 I only define the `struct` name if I have to (for self-referencing pointers).
 
@@ -479,6 +548,8 @@ If you want encapsulation, you can still be brief and declarative with the named
 
 ``` c
 // Immutability responsibility is on the users, which makes sense.
+// Other languages do the same thing.
+
 City b = City_new( .name = "Boston", .state = "MA" );
 printf( "I think I'm going to %s\n"
         "Where no one changes my state", b.name );
