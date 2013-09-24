@@ -44,7 +44,7 @@ But, alas, we (and our editors) rarely get it right, so I prefer to cut the comp
 
 #### Use `//` comments everywhere, never `/* ... */`
 
-Compared to single-line comments, multiple-line comments:
+Compared to single-line comments, multi-line comments:
 
 - are rarely used with a blank margin, so they're just as verbose
 - have a style, which has to be specified and adhered to
@@ -52,7 +52,7 @@ Compared to single-line comments, multiple-line comments:
 
 
 
-#### Write comments in full sentences, without abbreviations, with a full-stop
+#### Write comments in full sentences, without abbreviations, properly capitalized, with a full-stop
 
 
 
@@ -62,7 +62,7 @@ Compared to single-line comments, multiple-line comments:
 
 #### Don't comment what you don't need to
 
-You want to fit as much on screen as you can, so if you can make a line of code self-commenting rather than adding a second line above it, do so. If you can say the same thing in one sentence which is being said in three, do so. Avoid line-expensive comment styles at all costs.
+You want to fit as much on screen as you can, so if you can make a line of code self-commenting rather than adding a comment line above it, do so. If you can say the same thing in one sentence which is being said in three, do so. Avoid line-expensive comment styles at all costs.
 
 
 
@@ -74,7 +74,7 @@ But certainly use comments to explain bad design or bad naming forced upon you. 
 
 #### Comment all `#include`s to say what symbols you use from them
 
-I really wish some projects did this (I've never seen any that do). Use `man` to find where a standard library symbol is defined. You shouldn't require readers to use ctags or grep to find where a function came from. One of these days, I'm going to write a linter that checks this...
+I've never seen any projects that do this, but I think it would be great if more did. Use `man` to find where a standard library symbol is defined. You shouldn't require readers to use ctags or grep to find where a function came from. One of these days, I'm going to write a linter that checks this...
 
 
 
@@ -82,9 +82,9 @@ I really wish some projects did this (I've never seen any that do). Use `man` to
 
 Global variables are just hidden parameters to all the functions that use them. They make it really hard to understand what a function does, and how it is controlled.
 
-Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is `longjmp`s to set a hidden, static variable. Yuck.
+Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-Even if you have a parameter that will be passed around to lots of a functions - if it affects their computation, it should be a parameter, or a member of a parameter. This **always** leads to better code.
+Even if you have a parameter that will be passed around to lots of a functions - if it affects their computation, it should be a parameter or a member of a parameter. This **always** leads to better code.
 
 
 
@@ -140,7 +140,7 @@ if ( address == NULL );         // Good
 
 
 
-#### Only put function calls in conditional expressions if it reads naturally
+#### Only put function calls in expressions if it reads naturally
 
 Assign the function call to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value).
 
@@ -222,6 +222,31 @@ But don't use multiple assignment unless the variable's values are semantically 
 
 
 
+#### If you have an expression that depends on [operator precedence rules](https://en.wikipedia.org/wiki/Operators_in_C_and_C%2B%2B#Operator_precedence), use parentheses
+
+
+``` c
+int x = a * b + c / d;          // Bad
+int x = ( a * b ) + ( c / d );  // Good
+
+&( ( struct sockaddr_in* ) sa )->sin_addr;      // Bad
+&( ( ( struct sockaddr_in* ) sa )->sin_addr );  // Good
+```
+
+Skipping the operators when combining the equality and boolean operators is fine, because readers are probably used to that.
+
+``` c
+// Bad
+return hungry == true || legs != NULL && fridge.empty == false;
+
+// Good
+return hungry == true
+       || ( legs != NULL && fridge.empty == false );
+```
+
+
+
+
 #### Use `if`s instead of `switch`
 
 The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Also, `case` values have to be an integral constant expression, so they can't match against another variable. Furthermore, any statement inside a `switch` can be labelled and jumped to.
@@ -287,6 +312,25 @@ C can only get you so far. The preprocessor is how you meta-program C. Too many 
 
 
 
+#### Use variable-length arrays rather than `malloc`ing arrays
+
+Since C99, arrays can now be allocated to have a length determined at runtime.
+
+``` c
+int num_threads = atoi( argv[ 1 ] );
+
+// Rather than:
+pthread_t* threads = malloc( num_threads * sizeof pthread_t );
+...
+free( threads );
+
+// Instead:
+pthread_t threads[ num_threads ];
+// And the memory is released when the scope ends.
+```
+
+
+
 #### Never use array types for function parameters, because they're actually pointers
 
 ``` c
@@ -316,6 +360,16 @@ bool Banana_is_ripe( Banana *b ); // just reads - no need for a pointer!
 Yes, due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. First, compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler will only copy that field. Second, giving the function frame the actual data rather than a pointer saves having to fetch that remote memory first. Third, most structs are only a few bytes, so copying is negligible.
 
 If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can usually tell what a function does just by reading its signature. It's almost as good as Haskell!
+
+
+
+#### Don't typecast unless you have to (you probably don't)
+
+If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. There are only three reasons to use typecasts:
+
+- performing true division (not integer division) of `int` expressions
+- making an array index an `int`
+- using compound literals of arrays
 
 
 
@@ -389,13 +443,13 @@ Character_greet( ( struct Character ){
 ```
 
 
-#### Avoid `struct` literals without designated initializers
+#### Avoid compound `struct` literals without designated initializers
 
 ``` c
 // Bad - will break if struct members are reordered, and it's not
 // always clear what the values represent.
 Fruit apple = { "red", "medium" };
-// Good
+// Good; future-proof and descriptive
 Fruit watermelon = { .color = "green", .size = "large" };
 ```
 
