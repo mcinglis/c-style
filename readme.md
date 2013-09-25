@@ -11,7 +11,7 @@ Anyway, this document describes what I consider good C. Some points are as trivi
 
 **Write readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity and maintainability can often lead you to the best solution anyway - e.g., it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
-Many of these concepts are just good programming practices, and apply outside of C programming. Issues and pull-requests are very welcome. **This is a work-in-progress.**
+Many of these rules are just good programming practices, and apply outside of C programming. Issues and pull-requests are very welcome. **This is a work-in-progress.**
 
 
 
@@ -50,7 +50,13 @@ Compared to single-line comments, multi-line comments:
 
 
 
-#### Write comments in full sentences, without abbreviations, properly capitalized, with a full-stop
+#### Program in American English
+
+Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `sizable`, `disk`, `tire` and so on ([see more](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences)). I'm Australian, but I appreciate that most programmers will be learning and using American English. Also, American English spelling is consistently more phonetic than British English. British English tends to evolve towards American English for this reason, I think.
+
+
+
+#### Write comments in full sentences, without abbreviations
 
 
 
@@ -271,7 +277,7 @@ If the scope fits on a screen, and the variable is used in a lot of places, and 
 
 Consistency helps your readers understand what's happening. Using different names for the same values in functions is suspicious, and forces them to check that nothing weird is happening.
 
-Also, don't use parameter names like `self` or `this` for object-oriented functions because it doesn't make sense. C only has functions, so name the parameters what they are. I consider C's separation of data and functionality one of its best features. Haskell, at the forefront of language design, makes the same choice. Try to embrace and appreciate what C offers, rather than grafting other paradigms onto it.
+Also, don't use parameter names like `self` or `this` for object-oriented functions because it doesn't make sense. C doesn't have methods, so name the parameters what they are. I consider C's separation of data and functionality one of its best features. Haskell, at the forefront of language design, makes the same choice. Try to embrace and appreciate what C offers, rather than grafting other paradigms onto it.
 
 
 
