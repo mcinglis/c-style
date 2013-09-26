@@ -50,6 +50,12 @@ Compared to single-line comments, multi-line comments:
 
 
 
+#### Don't comment what you don't need to
+
+You want to fit as much on screen as you can, so if you can make a line of code self-commenting rather than adding a comment line above it, do so. If you can say the same thing in one sentence which is being said in three, do so. Avoid line-expensive comment styles at all costs.
+
+
+
 #### Program in American English
 
 Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `sizable`, `disk`, `tire` and so on ([see more](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences)). I'm Australian, but I appreciate that most programmers will be learning and using American English. Also, American English spelling is consistently more phonetic than British English. British English tends to evolve towards American English for this reason, I think.
@@ -57,12 +63,6 @@ Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `s
 
 
 #### Write comments in full sentences, without abbreviations
-
-
-
-#### Don't comment what you don't need to
-
-You want to fit as much on screen as you can, so if you can make a line of code self-commenting rather than adding a comment line above it, do so. If you can say the same thing in one sentence which is being said in three, do so. Avoid line-expensive comment styles at all costs.
 
 
 
@@ -80,9 +80,7 @@ Namespaces are one of the great advances of software development. Unfortunately,
 #include <stdlib.h>     // size_t, calloc, free
 ```
 
-If the name occurs in your source code, it should be declared in that file, or mentioned in a comment beside the header file it's declared in.
-
-It's terrible to require readers to refer to documentation or use grep to get this information. I've never seen any projects that do this, but I think it would be great if more did.
+If the name occurs in your source code, it should be declared in that file, or mentioned in a comment beside the header file it's declared in. It's terrible to require readers to refer to documentation or use grep to get this information. I've never seen any projects that do this, but I think it would be great if more did.
 
 You can use `man <func>` to find out where a standard library function is defined, and `man stdlib.h` to get documentation on that header (to see what it defines).
 
@@ -100,17 +98,17 @@ Global variables are just hidden parameters to all the functions that use them. 
 
 Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-Even if you have a parameter that will be passed around to lots of a functions - if it affects their computation, it should be a parameter or a member of a parameter. This **always** leads to better code.
+Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a parameter or a member of a parameter. This **always** leads to better software.
 
 
 
-#### Immutability saves lives: use `const` everywhere you can for variables
+#### Immutability saves lives: use `const` everywhere you can
 
 `const` isn't just for documenting read-only pointers. It should be used for every read-only variable. It helps the reader a lot in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air and you're forced to comprehend the entire scope to understand what is and isn't being modified.
 
-Don't use `const` for function return types, because that's useless.
+Also, if you consistently use `const`, then your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
 
-But don't use pointers to get around the `const` - if the value isn't constant, don't make it one. This can happen when you're passing `const *` variables around; the compiler will complain if a pointer loses its `const`ness in a function call. When you get this error, **remove the `const`; don't typecast**.
+Don't use `const` for function return types or struct members, because that's not helpful. Also, don't use typecasts or pointers to get around the `const` - if the value isn't constant, don't make it one. This can happen when you're passing `const *` variables around; the compiler will complain if a pointer loses its `const`ness. When you get this error, **remove the `const`; don't typecast**.
 
 
 
@@ -158,7 +156,9 @@ typedef struct Apple* Apple;
 typedef void* gpointer;
 ```
 
-This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and if you have to work with other interfaces that do it, `typedef` it back.
+This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and ignore the typedefs in other interfaces.
+
+Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
 
 Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and parameters that will be modified (and losing the benefits of that).
 
@@ -204,60 +204,6 @@ Book book = {};         // { .name = NULL, .pages = 0 }
 ```
 
 Unfortunately, variable-length arrays can't be initialized, so I'll usually only zero a variable-length array if it's defined in a large scope, or will be passed to other scopes.
-
-
-
-#### Always use `calloc` instead of `malloc`
-
-Use `calloc` because undefined memory is dangerous. Computers are so much faster, and compilers are so much better, and `malloc` is just something we don't need anymore. Always use `calloc` and stop caring about the difference - at least, until you've finished development, and have done benchmarks.
-
-
-
-#### Use variable-length arrays rather than allocating manual memory
-
-Since C99, arrays can now be allocated to have a length determined at runtime. Unfortunately, variable-length arrays can't be initialized.
-
-``` c
-const int num_threads = atoi( argv[ 1 ] );
-
-// Bad
-pthread_t * const threads = calloc( num_threads * sizeof pthread_t );
-...
-free( threads );
-
-// Good (though memory isn't zeroed, so be careful)
-pthread_t threads[ num_threads ];
-// The memory is released when the scope ends.
-```
-
-
-
-#### If a function should accept a null pointer, don't use array syntax for the parameter
-
-[Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as parameters to functions](http://c-faq.com/aryptr/aryptrparam.html), so functions can't ever receive an array as a parameter; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like the parameter declaration would suggest; it would return the size of the pointer, not the array pointed to.
-
-``` c
-int main( int argc, char * argv[] );     // Bad; argv is actually a char**
-int main( int argc, char ** argv );      // Good
-```
-
-Yeah, `[]` hints that the parameter will be treated as an array, but so does a plural name like `pets` or `children` so do that instead.
-
-
-
-#### Use static array indices for all array parameters
-
-Not many people know this, but array function parameters can be defined like so:
-
-``` c
-void start_game( Player players[ static 4 ] );
-```
-
-Compilers are specified to throw warnings if such functions are called with arrays smaller than the specified amount (which includes being called with `NULL`). GCC accepts this syntax, [but doesn't emit a warning yet](http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50584). Clang does!
-
-Use this feature whenever you have a function that shouldn't accept a null array, or an array less than a certain size. This is a fantastic way to improve compile-time correctness.
-
-If it doesn't make sense for the parameter to be qualified with an array index, then don't define the parameter with array syntax, because it's not actually a array. This cognitive dissonance is only worth it if you're going to take advantage of static array indices.
 
 
 
@@ -307,9 +253,35 @@ if ( address == NULL );         // Good
 
 
 
+#### Never change state within an expression (e.g. with assignments or `++`)
+
+Please, please, **no state-changes in an expression, and one state-change per statement**.
+
+``` c
+Trie_add( *child, ++word );     // Bad
+Trie_add( *child, word + 1 );   // Good
+
+// Good, if you need to modify word
+word += 1;
+Trie_add( *child, word );
+
+// Bad
+if ( ( x = calc() ) == 0 );
+// Good
+x = calc();
+if ( x == 0 );
+
+// Fine (technically an assignment within an expression)
+a = b = c;
+```
+
+But don't use multiple assignment unless the variable's values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
+
+
+
 #### Only put function calls in expressions if it reads naturally
 
-Assign the function call to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value).
+Assign function calls to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value).
 
 The exception is if the function name is short and reads naturally where it will be placed. For example, if the function name is a predicate, like `is_adult` or `in_tree`, then it will read naturally in an `if` expression. It's also probably fine to join these kind of functions in a boolean expression if you need to, but use your judgement. Complex boolean expressions should often be extracted to a function.
 
@@ -326,6 +298,8 @@ if ( is_tasty( banana ) ) {
     eat( banana );
 }
 ```
+
+This rule can and should be broken in a few circumstances, so use your judgement.
 
 
 
@@ -360,32 +334,6 @@ The `if` branch won't be executed, because the `NUM_ELS` will evaluate to an `un
 #### Use `+= 1` and `-= 1` over `++` and `--`
 
 `+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the good parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression (below).
-
-
-
-#### Never change state within an expression (e.g. with assignments or `++`)
-
-Please, please, **no state-changes in an expression, and one state-change per statement**.
-
-``` c
-Trie_add( *child, ++word );     // Bad
-Trie_add( *child, word + 1 );   // Good
-
-// Good, if you need to modify word
-word += 1;
-Trie_add( *child, word );
-
-// Bad
-if ( ( x = calc() ) == 0 );
-// Good
-x = calc();
-if ( x == 0 );
-
-// Fine (technically an assignment within an expression)
-a = b = c;
-```
-
-But don't use multiple assignment unless the variable's values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
 
 
 
@@ -446,32 +394,6 @@ And limit yourself to a maximum of one blank line within functions - but, try to
 
 
 
-#### Prefer compound literals to superfluous variables
-
-``` c
-// Bad, if `sa` is never used again.
-struct sigaction sa = {
-    .sa_handler = sigchld_handler,
-    .sa_flags = SA_RESTART
-};
-sigaction( SIGCHLD, &sa, NULL );
-
-// Good
-sigaction( SIGCHLD, &( struct sigaction ){
-    .sa_handler = sigchld_handler,
-    .sa_flags = SA_RESTART
-}, NULL );
-
-// Bad
-int v = 1;
-setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &v, sizeof v );
-
-// Good
-setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
-```
-
-
-
 #### Minimize the scope of variables
 
 If a variable is only used in a contiguous sequence of lines, and only a single value is used after that sequence, then that's a great candidate for extracting to a function.
@@ -519,40 +441,78 @@ bool Trie_has( const Trie trie, const char * word ) {
 
 
 
+#### Prefer compound literals to superfluous variables
+
+This is beneficial for the same reason as minimizing the scope of variables.
+
+``` c
+// Bad, if `sa` is never used again.
+struct sigaction sa = {
+    .sa_handler = sigchld_handler,
+    .sa_flags = SA_RESTART
+};
+sigaction( SIGCHLD, &sa, NULL );
+
+// Good
+sigaction( SIGCHLD, &( struct sigaction ){
+    .sa_handler = sigchld_handler,
+    .sa_flags = SA_RESTART
+}, NULL );
+
+// Bad
+int v = 1;
+setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &v, sizeof v );
+
+// Good
+setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
+```
+
+
+
 #### Use macros to eliminate repetition
 
 C can only get you so far. The preprocessor is how you meta-program C. Too many developers don't know about the [advanced features of the preprocessor](https://en.wikibooks.org/wiki/C_Programming/Preprocessor#.23define), like symbol stringification (`#`) and concatenation (`##`).
 
 
 
-#### Avoid `void *` and `union`s because they harm type safety
+#### Always use `calloc` instead of `malloc`
 
-`void*` and `union` are useful for polymorphism, but polymorphism is almost never as important as type safety. See if you can avoid them by (ab)using the preprocessor. Read *21st Century C* for inspiration.
-
-
-
-#### If you have a `void *`, assign it to a typed variable as soon as possible
-
-Just like working with uninitialized variables is dangerous, working with void pointers is dangerous: you want the compiler on your side. So ditch the `void *` as soon as you can.
+Use `calloc` because undefined memory is dangerous. Computers are so much faster, and compilers are so much better, and `malloc` is just something we don't need anymore. Always use `calloc` and stop caring about the difference - at least, until you've finished development, and have done benchmarks.
 
 
 
-#### Only use pointer arguments for arrays
+#### Use variable-length arrays rather than allocating manual memory
+
+Since C99, arrays can now be allocated to have a length determined at runtime. Unfortunately, variable-length arrays can't be initialized.
 
 ``` c
-// Good
-size_t strlen( const char* s );
-
-// Not ideal; see rule below on returning a value instead
-void Drink_mix( Drink * const drink, Ingredient const ingr );
+const int num_threads = atoi( argv[ 1 ] );
 
 // Bad
-bool Banana_is_ripe( Banana *b ); // just reads - no need for a pointer!
+pthread_t * const threads = calloc( num_threads * sizeof pthread_t );
+...
+free( threads );
+
+// Good (though memory isn't zeroed, so be careful)
+pthread_t threads[ num_threads ];
+// The memory is released when the scope ends.
 ```
 
-Yes, due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. First, compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler will only copy that field. Second, giving the function frame the actual data rather than a pointer saves having to fetch that remote memory first. Third, most structs are only a few bytes, so copying is negligible.
+As mentioned in the rule on zeroing declared variables, variable-length arrays can't be initialized, so I'll usually only zero a variable-length array if it's defined in a large scope, or will be passed to other scopes.
+
+
+
+#### Pointer parameters only for public modifications, or for nullity
+
+Due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. If you think this is a problem, consider:
+
+- compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler can only copy that field
+- giving the function frame the actual data rather than a pointer saves having to fetch that remote memory first
+- most structs are only a few bytes, so copying is negligible
 
 Defining a *modification* is tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the value's public state. This depends on common-decency of users of the interface to respect visibility comments.
+
+This rule saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which of its members are pointers.
 
 ``` c
 typedef struct {
@@ -571,7 +531,6 @@ typedef struct {
     int num_missiles;
 } Country;
 
-
 // Good: takes a `Country *` even though it doesn't need to, because
 // this will change the public state of `country`.
 void Country_grow( Country const * const country, double const percent ) {
@@ -581,7 +540,7 @@ void Country_grow( Country const * const country, double const percent ) {
 }
 ```
 
-In the above example, although `missiles` is a "private" member, if there are any public `Country_` functions whose result (or side-effects) is affected by the value of `missiles`, then changes to `missiles` should be considered as affecting the public state of a `Country` object.
+In the above example, although `missiles` is a "private" member, if there are any public `Country_` functions whose result (or side-effects) is affected by the values of the pointees of `missiles`, then changes to those pointees should be considered as affecting the public state of a `Country` object. Assuming there aren't any such functions, then no one needs to be told about changes to `missiles`.
 
 ``` c
 // If there are no public methods affected by `missiles`, then this is
@@ -593,11 +552,70 @@ void Country_fire_ze_missiles( Country const country ) {
 }
 ```
 
-If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can usually tell what a function does just by reading its signature. It's almost as good as Haskell! (*not really*)
+The other case to use pointer parameters is if the function *needs* nullity (poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, **use const to signal that the pointer is not for modification**.
+
+``` c
+// Good: `NULL` represents an empty list, and list is a pointer-to-const
+int List_length( List const * list ) {
+    int length = 0;
+    for ( ; list != NULL; l = l->next ) {
+        length += 1;
+    }
+    return length;
+}
+```
+
+If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can usually tell what a function does just by reading its prototype. It's almost as good as Haskell! (*not really*)
 
 
 
-#### Always return a value instead of modifying pointers
+#### Only use array-syntax parameters with static indices
+
+Not many people know this, but array function parameters can be defined like so:
+
+``` c
+void start_game( Player players[ static 4 ] );
+```
+
+Compilers are specified to throw warnings if such functions are called with arrays smaller than the specified amount (which includes being called with `NULL`). GCC accepts this syntax, [but doesn't emit a warning yet](http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50584). Clang does!
+
+Use this feature whenever you have a function that shouldn't accept a null array, or an array less than a certain size. This is a fantastic way to improve compile-time correctness.
+
+[Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as parameters to functions](http://c-faq.com/aryptr/aryptrparam.html), so functions can't ever receive an array as a parameter; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like the parameter declaration would suggest; it would return the size of the pointer, not the array pointed to.
+
+So, if it doesn't make sense for the parameter to be qualified with an array index, then don't define the parameter with array syntax, because it's not actually a array. This cognitive dissonance is only worth it if you're going to take advantage of static array indices.
+
+Yeah, `[]` hints that the parameter will be treated as an array, but so does a plural name like `pets` or `children`, so do that instead.
+
+
+
+#### Avoid `void *` and `union`s because they harm type safety
+
+`void*` and `union` are useful for polymorphism, but polymorphism is almost never as important as type safety. See if you can avoid them by (ab)using the preprocessor. Read *21st Century C* for inspiration.
+
+
+
+#### If you have a `void *`, assign it to a typed variable as soon as possible
+
+Just like working with uninitialized variables is dangerous, working with void pointers is dangerous: you want the compiler on your side. So ditch the `void *` as soon as you can.
+
+
+
+#### Don't typecast unless you have to (you probably don't)
+
+If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. There are only three reasons to use typecasts:
+
+- performing true division (not integer division) of `int` expressions
+- making an array index an `int`, but you can do this with assignment anyway
+- using compound literals for structs and arrays; C doesn't infer them :(
+
+
+
+#### Only use pointers in structs for nullity, dynamic arrays or self-references
+
+If the would-be pointer shouldn't be NULL, isn't an array of an unknown size, and isn't of the type of the struct itself, then don't make it a pointer. Just include the type itself in the struct. Don't worry about the size of the containing struct until you've done benchmarks.
+
+#### Always prefer to return a value rather than modifying pointers
 
 This encourages immutability, cultivates [pure functions](https://en.wikipedia.org/wiki/Pure_function), and makes things simpler and easier to understand.
 
@@ -611,22 +629,11 @@ void Drink_mix( Drink * const drink, Ingredient const ingr ) {
 // Good: immutability rocks, pure functions everywhere
 Drink Drink_mix( Drink const drink, Ingredient const ingr ) {
     return ( Drink ) {
-        .name = drink.name,
         .color = Color_blend( drink.color, ingr.color ),
         .alcohol = drink.alcohol + ingr.alcohol
     };
 }
 ```
-
-
-
-#### Don't typecast unless you have to (you probably don't)
-
-If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. There are only three reasons to use typecasts:
-
-- performing true division (not integer division) of `int` expressions
-- making an array index an `int`, but you can do this with assignment anyway
-- using compound literals for structs and arrays; C doesn't infer them :(
 
 
 
@@ -740,3 +747,4 @@ LDLIBS = `pkg-config --libs gtk+-3.0`
 
 all: $(basename $(wildcard *.c))
 ```
+
