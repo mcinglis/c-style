@@ -104,7 +104,7 @@ Even if you have a variable that will have to be passed around to lots of a func
 
 #### Immutability saves lives: use `const` everywhere you can
 
-`const` isn't just for documenting read-only pointers. It should be used for every read-only variable. It helps the reader a lot in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air and you're forced to comprehend the entire scope to understand what is and isn't being modified.
+`const` isn't just for documenting read-only pointers. It should be used for every read-only variable. It helps the reader a lot in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air; the reader is forced to comprehend the entire scope to understand what is and isn't being modified.
 
 Also, if you consistently use `const`, then your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
 
@@ -282,33 +282,34 @@ This rule can and should be broken in a few circumstances, so use your judgement
 
 *Expert C Programming* (a great book that explores the ANSI standard) also explains this in its first chapter. The takeaway is that you shouldn't declare `unsigned` variables even if they shouldn't be negative. If you want a larger maximum value, use a `long` or `long long`. Remember, lots of dynamic languages make do with a single integer type that can be either sign.
 
-The *only* benefit of `unsigned` is that it saves a byte or two, which really isn't that important anymore. `unsigned` offers no type safety; even with all warnings on, GCC doesn't bat an eyelid at `unsigned int x = -1;`.
+`unsigned` offers no type safety; even with all warnings on, GCC doesn't bat an eyelid at `unsigned int x = -1;`.
 
 *Expert C Programming* also provides an example for why you should cast all macros that will evaluate to an unsigned value.
 
 ``` c
-#define NUM_ELS( xs ) ( ( sizeof xs ) / ( sizeof xs[0] ) )
-const int xs[] = { 0, 1, 2, 3, 4, 5, 6 };
+#define NELEM( xs ) ( ( sizeof xs ) / ( sizeof xs[0] ) )
+int const xs[] = { 1, 2, 3, 4, 5, 6 };
 
-main() {
-    int x;
-    int d = -1;
-    if ( d < NUM_ELS( xs ) - 1 )
-        x = xs[ d + 1 ];
+int main( void ) {
+    int const d = -1;
+    if ( d < NELEM( xs ) - 1 ) {
+        return xs[ d + 1 ];
+    }
+    return 0;
 }
 ```
 
-The `if` branch won't be executed, because the `NUM_ELS` will evaluate to an `unsigned int` (via `sizeof`). So, `d` will be promoted to an `unsigned int`. `-1` in [two's complement](https://en.wikipedia.org/wiki/Two%27s_complement) represents the largest possible unsigned value (bit-wise), so the expression will be false.
+The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned int` (via `sizeof`). So, `d` will be promoted to an `unsigned int`. `-1` in [two's complement](https://en.wikipedia.org/wiki/Two%27s_complement) represents the largest possible unsigned value (bit-wise), so the expression will be false, and the program will return `0`.
 
 
 
 #### Use `+= 1` and `-= 1` over `++` and `--`
 
-`+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the good parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression (below).
+Actually, don't use either form if you can help it. Changing state should always be avoided (within reason). But, when you have to, `+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the good parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression (below).
 
 
 
-#### If you have an expression that depends on [operator precedence rules](https://en.wikipedia.org/wiki/Operators_in_C_and_C%2B%2B#Operator_precedence), use parentheses
+#### Use parentheses for expressions where the [operator precedence](https://en.wikipedia.org/wiki/Operators_in_C_and_C%2B%2B#Operator_precedence) isn't obvious
 
 
 ``` c
@@ -322,10 +323,7 @@ int x = ( a * b ) + ( c / d );  // Good
 You can and should make exceptions for commonly-seen combinations of operations. For example, skipping the operators when combining the equality and boolean operators is fine, because readers are probably used to that, and are confident of the result.
 
 ``` c
-// Bad
-return hungry == true || legs != NULL && fridge.empty == false;
-
-// Good
+// Fine
 return hungry == true
        || ( legs != NULL && fridge.empty == false );
 ```
@@ -335,25 +333,7 @@ return hungry == true
 
 #### Use `if`s instead of `switch`
 
-The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Also, `case` values have to be an integral constant expression, so they can't match against another variable. Furthermore, any statement inside a `switch` can be labelled and jumped to.
-
-Spot the bug:
-
-``` c
-switch ( x ) {
-    case 0:
-        printf( "Halt!" );
-        break;
-    defau1t:
-        printf( "Carry on" );
-        break;
-    case 42:
-        printf( "Apologies!" )
-        break;
-}
-```
-
-Actually, the `case`s and the `default` can be defined in arbitrary order, so that's not the bug. The bug is that the `default` above has a typo: it's actually a label called `defau1t` (with a one instead of an el).
+The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Also, `case` values have to be an integral constant expression, so they can't match against another variable. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
 
 `if` has none of these issues, is simpler, and easier to change.
 
@@ -371,13 +351,13 @@ If a variable is only used in a contiguous sequence of lines, and only a single 
 
 ``` c
 // Good: addr was only used in a part of handle_request
-int accept_request( const int listenfd ) {
+int accept_request( int const listenfd ) {
     struct sockaddr addr;
     return accept( listenfd, &addr, &( socklen_t ){ sizeof addr } );
 }
 
-int handle_request( const int listenfd ) {
-    const int reqfd = accept_request( listenfd );
+int handle_request( int const listenfd ) {
+    int const reqfd = accept_request( listenfd );
     // ... stuff not involving addr, but involving reqfd
 }
 ```
@@ -388,9 +368,9 @@ Another tactic to limit the exposure of variables is to break apart complex expr
 
 ``` c
 // Rather than:
-bool Trie_has( const Trie trie, const char * word ) {
-    const char c = word[ 0 ];
-    const Trie* child = Trie_child( trie, c );
+bool Trie_has( Trie const trie, char const * const word ) {
+    char const c = word[ 0 ];
+    Trie const * const child = Trie_child( trie, c );
     return c == '\0'
            || ( child != NULL
                 && Trie_has( *child, word + 1 ) );
@@ -398,12 +378,12 @@ bool Trie_has( const Trie trie, const char * word ) {
 
 // child is only used for the second part of the conditional, so we
 // can limit its exposure like so:
-bool Trie_has( const Trie trie, const char * word ) {
-    const char c = word[ 0 ];
+bool Trie_has( Trie const trie, char const * const word ) {
+    char const c = word[ 0 ];
     if ( c == '\0' ) {
         return true;
     } else {
-        const Trie* child = Trie_child( trie, c );
+        Trie const * const child = Trie_child( trie, c );
         return child != NULL
             && Trie_has( *child, word + 1 );
     }
@@ -450,9 +430,9 @@ C can only get you so far. The preprocessor is how you meta-program C. Too many 
 
 By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named parameters technique), then I don't consider that justification for an upper-case name.
 
-[A macro will break if takes an array literal at a named parameter](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument), so any such macro should have an upper-case name.
+[A macro will break if takes an array literal as a named parameter](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument), so any such macro should have an upper-case name.
 
-A macro will break if it repeats its parameters, and its called with an expression. GCC provides [statement expressions](http://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Statement-Exprs.html#Statement-Exprs) as an extension to deal with this. I think there are other techniques for fixing this, but I'm not aware of them.
+Also, if a macro repeats its parameters in its substitution, it will break things when called with an expression. GCC provides [statement expressions](http://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Statement-Exprs.html#Statement-Exprs) as an extension to deal with this. I think there are other techniques for fixing this, but I'm not aware of them.
 
 Also, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
 
@@ -490,7 +470,7 @@ As mentioned in the rule on zeroing declared variables, variable-length arrays c
 Due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. If you think this is a problem, consider:
 
 - compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler can only copy that field
-- giving the function frame the actual data rather than a pointer saves having to fetch that remote memory first
+- dereferencing pointers is slow - it's better to give the function frame the actual data straight-up
 - most structs are only a few bytes, so copying is negligible
 
 Defining a *modification* is tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the value's public state. This depends on common-decency of users of the interface to respect visibility comments.
@@ -516,7 +496,7 @@ typedef struct {
 
 // Good: takes a `Country *` even though it doesn't need to, because
 // this will change the public state of `country`.
-void Country_grow( Country * const country, double const percent ) {
+void Country_grow( Country const * const country, double const percent ) {
     for ( int i = 0; i < country->num_states; i += 1 ) {
         country->states[ i ].population *= percent;
     }
@@ -541,14 +521,14 @@ The other case to use pointer parameters is if the function *needs* nullity (poo
 // Good: `NULL` represents an empty list, and list is a pointer-to-const
 int List_length( List const * list ) {
     int length = 0;
-    for ( ; list != NULL; l = l->next ) {
+    for ( ; list != NULL; list = list->next ) {
         length += 1;
     }
     return length;
 }
 ```
 
-If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can usually tell what a function does just by reading its prototype. It's almost as good as Haskell! (*not really*)
+If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype.
 
 
 
@@ -564,7 +544,7 @@ Compilers are specified to throw warnings if such functions are called with arra
 
 Use this feature whenever you have a function that shouldn't accept a null array, or an array less than a certain size. This is a fantastic way to improve compile-time correctness.
 
-[Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as parameters to functions](http://c-faq.com/aryptr/aryptrparam.html), so functions can't ever receive an array as a parameter; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like the parameter declaration would suggest; it would return the size of the pointer, not the array pointed to.
+Always keep in mind, though, that [arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as parameters to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can't ever receive an array as a parameter; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array parameter declaration would suggest; it would return the size of the pointer, not the array pointed to.
 
 So, if it doesn't make sense for the parameter to be qualified with a static array index, then don't define the parameter with array syntax, because it's not actually a array. This cognitive dissonance is only worth it if you're going to take advantage of static array indices.
 
@@ -680,11 +660,12 @@ struct run_server_options {
 
 #define run_server( ... ) \
     _run_server( ( struct run_server_options ){ \
-        // Default values \
         .port = "45680", \
         .backlog = 5, \
         __VA_ARGS__ \
     } )
+
+// default values were specified above
 
 int run_server( struct run_server_options opts ) {
     ...
@@ -753,11 +734,11 @@ Also, `_new()` function calls become really hard to decipher when you have more 
 
 *Needing* encapsulation in C is often a sign that you're overcomplicating things. Anyway, if you do, use getters and setters to show that extra computation is happening behind the scenes when they're called, and specify fields as private in the struct definition with a comment. Don't prefix private struct members with `_`: you don't need to, it looks ugly, and it ties the access level with the name, which will make it a pain to change later.
 
-If there's nothing special happening behind the scenes, let you users get and set the struct members directly. Struct members should default to public unless you have a good reason to make them private. Yes, this will mean the public interface will have to change often. I consider the simplicity and brevity of direct member access to be worth it.
+If there's nothing special happening behind the scenes, let your users get and set the struct members directly. Struct members should default to public unless you have a good reason to make them private. Yes, this will mean the public interface will have to change often. I consider the simplicity and brevity of direct member access to be worth it.
 
 ``` c
 // Good
-City const c = City_new( "Vancouver" );
+City c = City_new( "Vancouver" );
 c = City_set_state( c, "BC" );
 printf( "%s is in %s, did you know?\n", c.name, c.country );
 ```
@@ -768,7 +749,7 @@ But you should always give your users the option of [declarative programming](ht
 // Better
 City const c = City_new( "Boston", .state = "MA" );
 printf( "I think I'm going to %s\n"
-        "Where no one needs to change my state\n", c.name );
+        "Where no one changes my state\n", c.name );
 ```
 
 
