@@ -108,7 +108,7 @@ Even if you have a variable that will have to be passed around to lots of a func
 
 Also, if you consistently use `const`, then your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
 
-Don't use `const` for function return types or struct members, because that's not helpful. Also, don't use typecasts or pointers to get around the `const` - if the value isn't constant, don't make it one. This can happen when you're passing `const *` variables around; the compiler will complain if a pointer loses its `const`ness. When you get this error, **remove the `const`; don't typecast**.
+Don't use `const` for function return types or struct members, because that tends to be more of a pain than a help. Also, don't use typecasts or pointers to get around the `const` - if the value isn't constant, don't make it one. This can happen when you're passing `const *` variables around; the compiler will complain if a pointer loses its `const`ness. When you get this error, **remove the `const`; don't typecast**.
 
 
 
@@ -146,42 +146,6 @@ As well as this argument, I'm partial to using `int` (for now) over `long` just 
 
 
 
-#### Only typedef structs; never basic types or pointers
-
-``` c
-// Bad
-typedef double centermeters;
-typedef double inches;
-typedef struct Apple* Apple;
-typedef void* gpointer;
-```
-
-This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and ignore the typedefs in other interfaces.
-
-Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
-
-Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and parameters that will be modified (and losing the benefits of that).
-
-
-
-#### typedef structs with CamelCase names and avoid using the struct namespace
-
-``` c
-// Good
-typedef struct {
-    char *name;
-    int age;
-} Person;
-```
-
-CamelCase names should be exclusively used for structs so that they're recognizable. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`).
-
-My only exception is that I don't typedef structs used for named parameters (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named parameters, then the typedef is unnecessary and the struct definition is hidden.
-
-I only define the `struct` name if it has self-referencing pointers members (e.g. a linked list). I'm not aware of any other need for the struct name, so to save repetition and typing, I leave it out unless I can't.
-
-
-
 #### Declare variables when they're needed
 
 This reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than declaration (`int x;`). Initializing a variable usually means you can `const` it, too.
@@ -210,6 +174,13 @@ Unfortunately, variable-length arrays can't be initialized, so I'll usually only
 #### Use one line per variable definition; don't bunch same types together
 
 This makes the types easier to change in future, and atomic lines are easier to edit. If you'll need to change all their types together, you should use your editor's block editing mode.
+
+I think it's alright to bunch struct members together, though, because struct definitions are much easier to comprehend than active code.
+
+``` c
+// Fine
+typedef struct { char r, g, b; } Color;
+```
 
 
 
@@ -261,7 +232,7 @@ Please, please, **no state-changes in an expression, and one state-change per st
 Trie_add( *child, ++word );     // Bad
 Trie_add( *child, word + 1 );   // Good
 
-// Good, if you need to modify word
+// Good, if you need to modify `word`
 word += 1;
 Trie_add( *child, word );
 
@@ -475,6 +446,18 @@ C can only get you so far. The preprocessor is how you meta-program C. Too many 
 
 
 
+#### Only upper-case a macro if will act differently than a function call
+
+By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named parameters technique), then I don't consider that justification for an upper-case name.
+
+[A macro will break if takes an array literal at a named parameter](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument), so any such macro should have an upper-case name.
+
+A macro will break if it repeats its parameters, and its called with an expression. GCC provides [statement expressions](http://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Statement-Exprs.html#Statement-Exprs) as an extension to deal with this. I think there are other techniques for fixing this, but I'm not aware of them.
+
+Also, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
+
+
+
 #### Always use `calloc` instead of `malloc`
 
 Use `calloc` because undefined memory is dangerous. Computers are so much faster, and compilers are so much better, and `malloc` is just something we don't need anymore. Always use `calloc` and stop caring about the difference - at least, until you've finished development, and have done benchmarks.
@@ -512,7 +495,7 @@ Due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs 
 
 Defining a *modification* is tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the value's public state. This depends on common-decency of users of the interface to respect visibility comments.
 
-This rule saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which of its members are pointers.
+So, if a struct will be "modified" by a function, have that function accept a pointer-to-const of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which of its members are pointers.
 
 ``` c
 typedef struct {
@@ -527,13 +510,13 @@ typedef struct {
     State * states;
     int num_states;
     // private
-    Missile * missile;
+    Missile * missiles;
     int num_missiles;
 } Country;
 
 // Good: takes a `Country *` even though it doesn't need to, because
 // this will change the public state of `country`.
-void Country_grow( Country const * const country, double const percent ) {
+void Country_grow( Country * const country, double const percent ) {
     for ( int i = 0; i < country->num_states; i += 1 ) {
         country->states[ i ].population *= percent;
     }
@@ -547,7 +530,7 @@ In the above example, although `missiles` is a "private" member, if there are an
 // fine, because it doesn't change any public state of `country`.
 void Country_fire_ze_missiles( Country const country ) {
     for ( int i = 0; i < country.num_missiles; i += 1 ) {
-        country->missiles[ i ].fired = true;
+        country.missiles[ i ].fired = true;
     }
 }
 ```
@@ -583,7 +566,7 @@ Use this feature whenever you have a function that shouldn't accept a null array
 
 [Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as parameters to functions](http://c-faq.com/aryptr/aryptrparam.html), so functions can't ever receive an array as a parameter; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like the parameter declaration would suggest; it would return the size of the pointer, not the array pointed to.
 
-So, if it doesn't make sense for the parameter to be qualified with an array index, then don't define the parameter with array syntax, because it's not actually a array. This cognitive dissonance is only worth it if you're going to take advantage of static array indices.
+So, if it doesn't make sense for the parameter to be qualified with a static array index, then don't define the parameter with array syntax, because it's not actually a array. This cognitive dissonance is only worth it if you're going to take advantage of static array indices.
 
 Yeah, `[]` hints that the parameter will be treated as an array, but so does a plural name like `pets` or `children`, so do that instead.
 
@@ -611,16 +594,54 @@ If it's valid to assign a value of one type to a variable of another type, then 
 
 
 
+#### Only typedef structs; never basic types or pointers
+
+``` c
+// Bad
+typedef double centermeters;
+typedef double inches;
+typedef struct Apple * Apple;
+typedef void * gpointer;
+```
+
+This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and ignore the typedefs in other interfaces.
+
+Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
+
+Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and parameters that will be modified (and losing the benefits of that).
+
+
+
+#### typedef structs with CamelCase names and avoid using the struct namespace
+
+``` c
+// Good
+typedef struct {
+    char * name;
+    int age;
+} Person;
+```
+
+CamelCase names should be exclusively used for structs so that they're recognizable. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`).
+
+My only exception is that I don't typedef structs used for named parameters (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named parameters, then the typedef is unnecessary and the struct definition is hidden.
+
+I only define the `struct` name if it has self-referencing pointers members (e.g. a linked list). I'm not aware of any other need for the struct name, so to save repetition and typing, I leave it out unless I can't.
+
+
+
 #### Only use pointers in structs for nullity, dynamic arrays or self-references
 
 If the would-be pointer shouldn't be NULL, isn't an array of an unknown size, and isn't of the type of the struct itself, then don't make it a pointer. Just include the type itself in the struct. Don't worry about the size of the containing struct until you've done benchmarks.
+
+
 
 #### Always prefer to return a value rather than modifying pointers
 
 This encourages immutability, cultivates [pure functions](https://en.wikipedia.org/wiki/Pure_function), and makes things simpler and easier to understand.
 
 ``` c
-// Bad: unnecessary mutation
+// Bad: unnecessary mutation (probably)
 void Drink_mix( Drink * const drink, Ingredient const ingr ) {
     Color_blend( &( drink->color ), ingr.color );
     drink->alcohol += ingr.alcohol;
@@ -653,7 +674,7 @@ Fruit watermelon = { .color = "green", .size = "large" };
 
 ``` c
 struct run_server_options {
-    char *port;
+    char * port;
     int backlog;
 };
 
@@ -676,53 +697,78 @@ int main( void ) {
 
 I learnt this from *21st Century C*. So many C interfaces could be improved immensely if they took advantage of this technique. You can define a macro to make this easier for multiple functions.
 
-You can use this for required arguments too, obviously, but you lose compile-time checking. I haven't worked out a way to get the best of both worlds: named arguments and compile-time checks.
-
-*Don't* use named parameters everywhere. If a function's only parameter happens to be a struct, that doesn't necessarily mean it should become the named parameters for that function. A good rule of thumb is that if the struct is used outside of that function, you shouldn't hide it with a macro like above.
+Don't use named parameters everywhere. If a function's only parameter happens to be a struct, that doesn't necessarily mean it should become the named parameters for that function. A good rule of thumb is that if the struct is used outside of that function, you shouldn't hide it with a macro like above.
 
 ``` c
-// Good; using named parameters here would be weird and confusing
+// Good; the typecast here is informative and expected.
 Trie_new( ( Alphabet ){ .start = 'a', .size = 26 } );
 ```
 
 
 
-#### Prefer structs over a verbose interface
+#### Prefer `_new()` functions with named parameters to struct literals
+
+`_new()` functions have a few advantages over struct literals.
+
+Static array indices can give `_new()` functions better compile-time correctness:
+
+``` c
+// Suppose Characters shouldn't have NULL names.
+Character Character__new( char name[ static 1 ], Character options );
+#define Character_new( name, ... ) \
+    Character__new( name, ( Character ){ __VA_ARGS__ } )
+
+// This will throw a warning at compile-time.
+Character a = Character_new( NULL, .dexterity = 3 );
+
+// Struct literals can't offer this correctness at compile-time.
+Character b = { .strength = 5 };        // b.name is now NULL
+```
+
+Also, when a "required" member is added to a struct, all previous `_new()` calls will become errors, whereas struct literals without that required member will still compile:
+
+``` c
+// Suppose we add a required `age` field to the `Character` struct,
+// and update the `_new()` function accordingly.
+
+Character Character__new( char name[ static 1 ], int age, Character options );
+
+#define Character_new( name, age, ... ) \
+    Character__new( name, age, ( Character ){ __VA_ARGS__ } )
+
+// Then old `_new()` calls are now compilation errors:
+Character a = Character_new( "Arthur", .dexterity = 3 );
+
+// But old struct literal definitions still compile:
+Character b = { .name = "Brock", .strength = 5 };
+```
+
+Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required parameters.
+
+Also, `_new()` function calls become really hard to decipher when you have more than a few required parameters. I haven't worked out a way to have required, named parameters with compile-time correctness other than to have comments beside the calls. Lots of required parameters is often be a code-smell, anyway.
+
+
+
+#### Only provide getters and setters if you need the encapsulation
+
+*Needing* encapsulation in C is often a sign that you're overcomplicating things. Anyway, if you do, use getters and setters to show that extra computation is happening behind the scenes when they're called, and specify fields as private in the struct definition with a comment. Don't prefix private struct members with `_`: you don't need to, it looks ugly, and it ties the access level with the name, which will make it a pain to change later.
+
+If there's nothing special happening behind the scenes, let you users get and set the struct members directly. Struct members should default to public unless you have a good reason to make them private. Yes, this will mean the public interface will have to change often. I consider the simplicity and brevity of direct member access to be worth it.
 
 ``` c
 // Good
-City const c = {
-    .name = "Manchester",
-    .country = "United Kingdom",
-    .population = 2_500_000
-};
-printf( "%s is in %s\n", c2.name, c2.country );
-
-// Bad; what are these values?
-Character_new( "Arthur", 5, 8, 2, 7 );
-
-// Bad
-City c = City_new();
-c = City_set_name( c, "Brisbane" );
-c = City_set_country( c, "Australia" );
-printf( "%s is a pretty cool guy\n", City_get_name( c ) );
+City const c = City_new( "Vancouver" );
+c = City_set_state( c, "BC" );
+printf( "%s is in %s, did you know?\n", c.name, c.country );
 ```
 
-Keep (required) state changes to a minimum; prefer declarative variable definitions rather than initializing and setting members.
-
-If you need encapsulation, just ask for privacy in your struct definitions with comments, and provide getters and setters as appropriate. Though, these kind of things in C are often signals that you're over-complicating things.
+But you should always give your users the option of [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming):
 
 ``` c
-typedef struct {
-    char * name;
-    // private:
-    char * state;
-    char * country;
-}
-
-City const c = { .name = "Vancouver" };
-c = City_set_state( c, "BC" );
-printf( "%s is in the country of %s\n", c.name, c.country );
+// Better
+City const c = City_new( "Boston", .state = "MA" );
+printf( "I think I'm going to %s\n"
+        "Where no one needs to change my state\n", c.name );
 ```
 
 
