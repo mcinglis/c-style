@@ -4,16 +4,16 @@ I've never done anything useful with C, but I read a lot about C, and play aroun
 
 My programming ability is hindered by my inability to work with bad interfaces. I think the best engineers are those who can make do with what they're given; I can't, unless it's for work or school.
 
-Anyway, this document describes what I consider good C. Some points are as trivial as style, while others are more intricate. Some points I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
+Anyway, this document describes what I consider good C (which I very rarely see). Some points are as trivial as style, while others are more intricate. Some points I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
 * compilers are better at optimizing than humans, and they're only going to get better
 
-**Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity and maintainability can often lead you to the best solution anyway - e.g., it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
+**Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
-Many of these rules are just good programming practices, and apply outside of C programming. Writing this guide made me deeply consider, and reconsider, best C programming practices. I've changed my opinion multiple times on more than a few points here.
+Many of these rules are just good programming practices, and apply outside of C programming. Writing this guide made me deeply consider, and reconsider, best C programming practices. I've changed my opinion multiple times on many of the rules in this document.
 
-So, I'm probably still wrong on even more points. **This is a work-in-progress;** issues and pull-requests are very welcome.  This guide is licensed under the [Creative Commons Attribution-ShareAlike](/license.md), so I'm not liable for anything.
+So, I'm certain I'm wrong on even more points. This is a constant work-in-progress; issues and pull-requests are very welcome. This guide is licensed under the [Creative Commons Attribution-ShareAlike](/license.md), so I'm not liable for anything you do with this, etc.
 
 
 ---
@@ -43,11 +43,12 @@ But, alas, we (and our editors) rarely get it right, so I prefer to cut the comp
 
 #### Use `//` comments everywhere, never `/* ... */`
 
-Compared to single-line comments, multi-line comments:
+Stick to single-line comments, and cut the complexity. Compared to single-line comments, multi-line comments:
 
-- are rarely used with a blank margin, so they're just as verbose
+- are rarely used with a blank margin, so they're just as character-heavy
 - have a style, which has to be specified and adhered to
 - often have `*/` on its own line, so they're more line-expensive
+- have weird rules about embedded `/*` and `*/`
 
 
 
@@ -63,7 +64,7 @@ You want to fit as much on screen as you can, so if you can make a line of code 
 
 #### Don't use comments to conceal bad naming or bad design you can fix
 
-But certainly use comments to explain bad design or bad naming forced upon you. If your project heavily depends on the bad interface, you should write a wrapper around it to improve it.
+But certainly use comments to explain bad design or bad naming forced upon you. If your project heavily depends on the bad interface, you should write a wrapper around it to improve it (if you do, please release it!).
 
 
 
@@ -91,7 +92,7 @@ typedef struct Alphabet {
 } Alphabet;
 ```
 
-But, if the comment will refer to a multi-line block of code (e.g. a small `if` block), I'll still put the comment at the top.
+But, if the comment will refer to a multi-line block of code, I'll still put the comment at the top.
 
 
 
@@ -103,7 +104,7 @@ Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `s
 
 #### Comment all `#include`s to say what symbols you use from them
 
-Namespaces are one of the great advances of software development. Unfortunately, C missed out (scopes aren't namespaces). But, because namespaces are so fantastic, we should emulate them with comments.
+Namespaces are one of the great advances of software development. Unfortunately, C missed out (scopes aren't namespaces). But, because namespaces are so fantastic, we should try to simulate them with comments.
 
 ``` c
 #include <stdlib.h>     // size_t, calloc, free
@@ -115,9 +116,19 @@ You can use `man <func>` to find out where a standard library function is define
 
 
 
+#### `#include` the definition of everything you use
+
+Don't depend on what your headers include. If your code uses a symbol, include the header file where that symbol is defined.
+
+This saves your readers and fellow developers from having to follow a trail of includes just to find the definition of a symbol you're using. Your code should just tell them where it comes from.
+
+It also helps to future-proof your code if a header stops including another header.
+
+
+
 #### Avoid unified headers
 
-Unified headers are bad, because they relieve the library developer of the responsibility to provide loosely-coupled modules clearly separated by their purpose and abstraction. Even if the developer (thinks she) does this anyway, a unified header increases compilation time, and couples the user's program to the entire library, regardless of if they need it.
+Unified headers are bad, because they relieve the library developer of the responsibility to provide loosely-coupled modules clearly separated by their purpose and abstraction. Even if the developer (thinks she) does this anyway, a unified header increases compilation time, and couples the user's program to the entire library, regardless of if they need it. There are numerous other disadvantages, touched on in the points above.
 
 There was a good expose on unified headers on [Programmers' Stack Exchange](http://programmers.stackexchange.com/questions/185773/library-design-provide-a-common-header-file-or-multiple-headers). An answer mentions that it's reasonable for something like GTK+ to only provide a single header file. I agree, but I think that's due to the bad design of GTK+, and it's not intrinsic to a graphical toolkit.
 
@@ -125,13 +136,17 @@ It's harder for users to write multiple `#include`s just like it's harder for us
 
 
 
-#### No global variables if you can help it (you probably can)
+#### No global or static variables if you can help it (you probably can)
 
-Global variables are just hidden parameters to all the functions that use them. They make it really hard to understand what a function does, and how it is controlled.
+Global variables are just hidden arguments to all the functions that use them. They make it really hard to understand what a function does, and how it is controlled.
 
 Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a parameter or a member of a parameter. This **always** leads to better software.
+Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This **always** leads to better software.
+
+Static variables in functions are just global variables scoped to that function; the arguments above apply equally to them. Just like global variables, static variables are often used as an easy way out of providing modular, pure functions. They're often defended in the name of performance.
+
+You don't need static variables, just like you don't need global variables. If you need persistent state, have the function accept that state as a argument. If you need to return something persistent, allocate memory for it.
 
 
 
@@ -141,7 +156,7 @@ Even if you have a variable that will have to be passed around to lots of a func
 
 Using `const` everywhere you can also helps you, as a developer, reason about what's happening in the control flow of your program, and where mutability is spreading. It helps your compiler help you, which is great to have.
 
-The compiler will warn if a pointee loses `const`ness in a function call (because that would let the pointee be modified), but it won't complain if a pointee gains `const`ness. Thus, if you *don't* specify your pointer parameters as `const` when they're read-only anyway, you discourage your users from using `const` in their code:
+The compiler will warn if a pointee loses `const`ness in a function call (because that would let the pointee be modified), but it won't complain if a pointee gains `const`ness. Thus, if you *don't* specify your pointer arguments as `const` when they're read-only anyway, you discourage your users from using `const` in their code:
 
 ``` c
 // Bad: sum should define its array as const.
@@ -164,7 +179,7 @@ If you're forced to work with a library that ignores `const`, you can write a ma
 #define sum( n, xs ) sum( n, ( int * ) xs )
 ```
 
-Only provide `const` qualifiers for pointees in function prototypes - `const` for other parameters is just an implementation detail.
+Only provide `const` qualifiers for pointees in function prototypes - `const` for other arguments is just an implementation detail.
 
 ``` c
 // Unnecessary
@@ -265,7 +280,7 @@ If the scope fits on a screen, and the variable is used in a lot of places, and 
 
 Consistency helps your readers understand what's happening. Using different names for the same values in functions is suspicious, and forces them to check that nothing weird is happening.
 
-Also, don't use parameter names like `self` or `this` for object-oriented functions because it doesn't make sense. C doesn't have methods, so name the parameters what they are. I consider C's separation of data and functionality one of its best features. Haskell, at the forefront of language design, makes the same choice. Try to embrace and appreciate what C offers, rather than grafting other paradigms onto it.
+Also, don't use argument names like `self` or `this` for object-oriented functions because it doesn't make sense. C doesn't have methods, so name the arguments what they are. I consider C's separation of data and functionality one of its best features. Haskell, at the forefront of language design, makes the same choice. Try to embrace and appreciate what C offers, rather than grafting other paradigms onto it.
 
 
 
@@ -495,12 +510,12 @@ setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
 
 #### Use macros to eliminate repetition
 
-C can only get you so far. The preprocessor is how you meta-program C. Too many developers don't know about the [advanced features of the preprocessor](https://en.wikibooks.org/wiki/C_Programming/Preprocessor#.23define), like symbol stringification (`#`) and concatenation (`##`). I also like to define macros to make the users' life easier. They don't have to use the macro if they don't want to, but users who do will probably appreciate it.
+C can only get you so far. The preprocessor is how you meta-program C. Too many developers don't know about the [advanced features of the preprocessor](https://en.wikibooks.org/wiki/C_Programming/Preprocessor#.23define), like symbol stringification (`#`) and concatenation (`##`). I sometimes define macros to make the users' life easier. They don't have to use the macro if they don't want to, but users who do will probably appreciate it.
 
 ``` c
 // Good - what harm does it do?
 #define Trie_EACH( trie, index ) \
-    for ( int index = 0; index < trie.size; index += 1 )
+    for ( int index = 0; index < trie.alphabet.size; index += 1 )
 
 Trie_EACH( trie, i ) {
     Trie * const child = trie.children[ i ];
@@ -508,15 +523,17 @@ Trie_EACH( trie, i ) {
 }
 ```
 
+When you provide something like this, document what it's doing under the surface. In your documentation, encourage your users to go without the macro if they prefer. You should always provide a structure to your interfaces that will still be usable without macros.
+
 
 
 #### Only upper-case a macro if will act differently than a function call
 
-By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named parameters technique), then I don't consider that justification for an upper-case name.
+By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named arguments technique), then I don't consider that justification for an upper-case name.
 
-[A macro will break if takes an array literal as a named parameter](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument), so any such macro should have an upper-case name.
+[A macro will break if takes an array literal as a named argument](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument), so any such macro should have an upper-case name.
 
-Also, if a macro repeats its parameters in its substitution, it will break things when called with an expression. GCC provides [statement expressions](http://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Statement-Exprs.html#Statement-Exprs) as an extension to deal with this. I think there are other techniques for fixing this, but I'm not aware of them.
+Also, if a macro repeats its arguments in its substitution, it will break things when called with an expression. GCC provides [statement expressions](http://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Statement-Exprs.html#Statement-Exprs) as an extension to deal with this. I think there are other techniques for fixing this, but I'm not aware of them.
 
 Also, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
 
@@ -524,7 +541,7 @@ Also, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rath
 
 #### Initialize strings as arrays, and use `sizeof` for byte size
 
-Always initialize your string literals as arrays, unless you have a very good reason. Then, with an array variable, you can use it with `sizeof` to get the byte size, rather than something error-prone and slow like `strlen( s ) + 1`.
+Always initialize your string literals as arrays, unless you have a very good reason. Then, with an array variable, you can use it with `sizeof` to get the byte size, rather than something error-prone like `strlen( s ) + 1` or `#define`ing the number.
 
 ``` c
 // Good
@@ -534,7 +551,7 @@ write( output, message, sizeof message );
 
 
 
-#### Pointer parameters only for public modifications, or for nullity
+#### Pointer arguments only for public modifications, or for nullity
 
 Due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. If you think this is a problem, consider:
 
@@ -584,7 +601,7 @@ void Country_fire_ze_missiles( Country const country ) {
 }
 ```
 
-The other case to use pointer parameters is if the function *needs* nullity (poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, **use const to signal that the pointer is not for modification**.
+The other case to use pointer arguments is if the function *needs* nullity (poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, **use const to signal that the pointer is not for modification**.
 
 ``` c
 // Good: `NULL` represents an empty list, and list is a pointer-to-const
@@ -601,21 +618,23 @@ If you're reading a codebase that sticks to this rule, and its functions and typ
 
 
 
-#### Never use array-syntax for function parameters
+#### Never use array syntax for function arguments
 
-[Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as parameters to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can't ever receive an array as a parameter; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array parameter declaration would suggest; it would return the size of the pointer, not the array pointed to.
+[Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as arguments to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can never receive an array as a argument; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array argument declaration would suggest; it would return the size of the pointer, not the array pointed to.
 
-[Static array indices in function parameters are nice](http://hamberg.no/erlend/posts/2013-02-18-static-array-indices.html), but only protect against trivial situations. Also, GCC doesn't warn about their violation, only Clang. I don't consider the confusing, non-obvious syntax to be worth the small compilation check.
+[Static array indices in function arguments are nice](http://hamberg.no/erlend/posts/2013-02-18-static-array-indices.html), but only protect against very trivial situations, like when given literal `NULL`. Also, GCC doesn't warn about their violation yet, only Clang. I don't consider the confusing, non-obvious syntax to be worth the small compilation check.
 
-Yeah, `[]` hints that the parameter will be treated as an array, but so does a plural name like `pets` or `children`, so do that instead.
+Yeah, `[]` hints that the argument will be treated as an array, but so does a plural name like `pets` or `children`, so do that instead.
 
 
 
 #### Use `assert` everywhere your program would fail otherwise
 
-Good software fails fast. Also, assert errors are much more informative than segmentation faults. If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between parameters.
+Good software fails fast. Also, assertion errors are much more informative than segmentation faults. If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between arguments.
 
-Don't mistake asserting for error-reporting, though. Assert things that you won't bother to check otherwise (like null pointers).
+That said, don't repeat your assertions. If `foo` first calls `bar`, and `bar` first calls `baz`, and all three functions need the `widget` argument to be non-null, then just assert that `widget` isn't null in `baz`, and treat that assertion as transitive to `bar`, and thus to `foo`. My rule is, as title, "only assert where it will fail otherwise". This means if another assert already has your back, don't sweat it.
+
+Also, don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise (like null pointers). Never write assertions for the properties of user input.
 
 
 
@@ -676,7 +695,7 @@ This mistake is committed by way too many codebases. It masks what's really goin
 
 Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
 
-Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and parameters that will be modified (and losing the benefits of that).
+Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and arguments that will be modified (and losing the benefits of that).
 
 
 
@@ -692,7 +711,7 @@ typedef struct Person {
 
 CamelCase names should be exclusively used for structs so that they're recognizable. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability if and when the struct definition becomes large.
 
-My only exception is that I don't typedef structs used for named parameters (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named parameters, then the typedef is unnecessary and the struct definition is hidden.
+My only exception is that I don't typedef structs used for named arguments (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
 
 
 
@@ -738,7 +757,7 @@ Fruit watermelon = { .color = "green", .size = "large" };
 
 
 
-#### Use structs to provide named function parameters for optional arguments
+#### Use structs to provide named function arguments for optional arguments
 
 ``` c
 struct run_server_options {
@@ -766,7 +785,7 @@ int main( void ) {
 
 I learnt this from *21st Century C*. So many C interfaces could be improved immensely if they took advantage of this technique. You can define a macro to make this easier for multiple functions.
 
-Don't use named parameters everywhere. If a function's only parameter happens to be a struct, that doesn't necessarily mean it should become the named parameters for that function. A good rule of thumb is that if the struct is used outside of that function, you shouldn't hide it with a macro like above.
+Don't use named arguments everywhere. If a function's only argument happens to be a struct, that doesn't necessarily mean it should become the named arguments for that function. A good rule of thumb is that if the struct is used outside of that function, you shouldn't hide it with a macro like above.
 
 ``` c
 // Good; the typecast here is informative and expected.
@@ -775,7 +794,7 @@ Trie_new( ( Alphabet ){ .start = 'a', .size = 26 } );
 
 
 
-#### Prefer `_new()` functions with named parameters to struct literals
+#### Prefer `_new()` functions with named arguments to struct literals
 
 When a "required" member is added to a struct, all previous `_new()` calls will become errors, whereas struct literals without that required member will still compile:
 
@@ -795,9 +814,9 @@ Character a = Character_new( "Arthur", .dexterity = 3 );
 Character b = { .name = "Brock", .strength = 5 };
 ```
 
-Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required parameters.
+Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required arguments.
 
-Also, `_new()` function calls become really hard to decipher when you have more than a few required parameters. I haven't worked out a way to have required, named parameters with compile-time correctness other than to have comments beside the calls. Lots of required parameters is often be a code-smell, anyway.
+Also, `_new()` function calls become really hard to decipher when you have more than a few required arguments. I haven't worked out a way to have required, named arguments with compile-time correctness other than to have comments beside the calls. Lots of required arguments is often be a code-smell, anyway.
 
 
 
