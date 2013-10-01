@@ -383,6 +383,8 @@ The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned
 #define NELEM( xs ) ( long )( sizeof( xs ) / sizeof( xs[ 0 ] ) )
 ```
 
+You will need to use unsigned values to provide [well-defined bit-shift](http://stackoverflow.com/questions/4009885/arithmetic-bit-shift-on-a-signed-integer). But, try to keep them contained, and don't let them interact with signed values.
+
 
 
 #### Use `+= 1` and `-= 1` over `++` and `--`
