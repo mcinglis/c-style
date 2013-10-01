@@ -250,25 +250,6 @@ To me, all declarations are shifty.
 
 
 
-#### If you have to declare a variable, zero it
-
-Again: Ben Klemens, from *21st Century C*:
-
-> If you declare a variable inside a function, then C won't zero it out automatically (which is perhaps odd for things called automatic variables). I'm guessing that the rationale here is a speed savings: when setting up the frame for a function, zeroing out bits is extra time spent, which could potentially add up if you call the function a million times and it's 1985. But here in the present, leaving a variable undefined is asking for trouble.
-
-"Zeroing" means assigning numbers to `0` and pointers to `NULL`. Note that struct and array initializations zero all non-mentioned fields:
-
-``` c
-int zeroed[ 3 ] = { 0 };        // { 0, 0, 0 }
-Book book = {};                 // { .name = NULL, .pages = 0 }
-// sometimes it's better to explicitly mention your fields, though
-// (like if your reader is unlikely to be familiar with the struct)
-```
-
-Unfortunately, variable-length arrays can't be initialized, so I'll usually only zero a variable-length array if it's defined in a large scope, or will be passed to other scopes.
-
-
-
 #### Use one line per variable definition; don't bunch same types together
 
 This makes the types easier to change in future, because atomic lines are easier to edit. If you'll need to change all their types together, you should use your editor's block editing mode.
@@ -406,7 +387,7 @@ The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned
 
 #### Use `+= 1` and `-= 1` over `++` and `--`
 
-Actually, don't use either form if you can help it. Changing state should always be avoided (within reason). But, when you have to, `+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the good parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression (below).
+Actually, don't use either form if you can help it. Changing state should always be avoided (within reason). But, when you have to, `+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the good parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression.
 
 
 
@@ -974,7 +955,7 @@ No excuses here. Always develop and compile with warnings on. It turns out, thou
 
 ``` make
 CFLAGS += -Wall -Wextra -Wpedantic \
-          -Wformat=2 -Wunused -Wno-unused-parameter -Wuninitialized \
+          -Wformat=2 -Wunused -Wno-unused-parameter \
           -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
           -Wredundant-decls -Wnested-externs
 
