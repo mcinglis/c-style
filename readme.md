@@ -286,7 +286,7 @@ int print_steps = 0;             // Bad - is this counting steps?
 
 
 
-#### Use explicit comparisons when expecting boolean values
+#### Use explicit comparisons instead of relying on truthiness
 
 Explicit comparisons tell the reader what they're working with, because it's not always obvious in C. Are we working with counts or booleans or pointers?
 
