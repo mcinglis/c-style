@@ -656,7 +656,7 @@ If a function returns a pointer so it can return `NULL` as a sentinel value, it 
 
 
 
-#### Never use array syntax for function arguments
+#### Never use array syntax for function arguments definitions
 
 [Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as arguments to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can never receive an array as a argument; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array argument declaration would suggest; it would return the size of the pointer, not the array pointed to.
 
