@@ -54,9 +54,7 @@ Stick to single-line comments, and cut the complexity. Compared to single-line c
 
 
 
-#### Don't comment what you don't need to
-
-You want to fit as much on screen as you can, so if you can make a line of code self-commenting rather than adding a comment line above it, do so. If you can say the same thing in one sentence which is being said in three, do so. Avoid line-expensive comment styles at all costs.
+#### Don't comment what the code says, and make the code as informative as you can
 
 
 
@@ -722,9 +720,9 @@ As mentioned in the rule on zeroing declared variables, variable-length arrays c
 
 
 
-#### Avoid `void *` and `union`s because they harm type safety
+#### Avoid `void *` because it harms type safety
 
-`void *` and `union` are useful for polymorphism, but polymorphism is almost never as important as type safety. Void pointers and unions are indispensable in many situations, but you should consider other, safer alternatives first.
+`void *` is useful for polymorphism, but polymorphism is almost never as important as type safety. Void pointers are indispensable in many situations, but you should consider other, safer alternatives first - like using unions, or the preprocessor.
 
 
 
