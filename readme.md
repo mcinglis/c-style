@@ -22,11 +22,13 @@ So, I'm certain I'm wrong on even more points. This is a constant work-in-progre
 
 #### Write to the most modern standard you can
 
+Always write to a *standard*, as in `-std=c11`. Don't write to a dialect, like `gnu11`. You'll thank yourself later.
+
 
 
 #### We can't get tabs right, so use spaces everywhere
 
-The idea of tabs was that we'd use tabs for indentation levels, and spaces for alignment. This lets people choose a tab-width to their liking, but it won't break alignment of columns.
+The idea of tabs was that we'd use tabs for indentation levels, and spaces for alignment. This lets people choose an indentation width to their liking, without breaking alignment of columns.
 
 ``` c
 int main( void ) {
@@ -37,7 +39,7 @@ int main( void ) {
 }
 ```
 
-But, alas, we (and our editors) rarely get it right, so I prefer to cut the complexity and stick to spaces only, because that's harder to get wrong.
+But, alas, we (and our editors) rarely get it right. I prefer to cut the complexity and only use spaces, because that's harder to get wrong.
 
 
 
@@ -52,13 +54,13 @@ Stick to single-line comments, and cut the complexity. Compared to single-line c
 
 
 
+#### Write comments in full sentences, without abbreviations
+
+
+
 #### Don't comment what you don't need to
 
 You want to fit as much on screen as you can, so if you can make a line of code self-commenting rather than adding a comment line above it, do so. If you can say the same thing in one sentence which is being said in three, do so. Avoid line-expensive comment styles at all costs.
-
-
-
-#### Write comments in full sentences, without abbreviations
 
 
 
@@ -98,7 +100,7 @@ But, if the comment will refer to a multi-line block of code, I'll still put the
 
 #### Program in American English
 
-Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `sizable`, `disk`, `tire` and so on ([see more](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences)). I'm Australian, but I appreciate that most programmers will be learning and using American English. Also, American English spelling is consistently more phonetic than British English. British English tends to evolve towards American English for this reason, I think.
+Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `sizable`, `burned`, and so on ([see more](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences)). I'm Australian, but I appreciate that most programmers will be learning and using American English. Also, American English spelling is consistently more phonetic and consistent than British English. British English tends to evolve towards American English for this reason, I think.
 
 
 
@@ -130,7 +132,7 @@ It also helps to future-proof your code if a header stops including another head
 
 Unified headers are bad, because they relieve the library developer of the responsibility to provide loosely-coupled modules clearly separated by their purpose and abstraction. Even if the developer (thinks she) does this anyway, a unified header increases compilation time, and couples the user's program to the entire library, regardless of if they need it. There are numerous other disadvantages, touched on in the points above.
 
-There was a good expose on unified headers on [Programmers' Stack Exchange](http://programmers.stackexchange.com/questions/185773/library-design-provide-a-common-header-file-or-multiple-headers). An answer mentions that it's reasonable for something like GTK+ to only provide a single header file. I agree, but I think that's due to the bad design of GTK+, and it's not intrinsic to a graphical toolkit.
+There was a good exposé on unified headers on the [Programmers' Stack Exchange](http://programmers.stackexchange.com/questions/185773/library-design-provide-a-common-header-file-or-multiple-headers). An answer mentions that it's reasonable for something like GTK+ to only provide a single header file. I agree, but I think that's due to the bad design of GTK+, and it's not intrinsic to a graphical toolkit.
 
 It's harder for users to write multiple `#include`s just like it's harder for users to write types. Bringing difficulty into it is missing the forest for the trees.
 
@@ -142,9 +144,9 @@ Global variables are just hidden arguments to all the functions that use them. T
 
 Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This **always** leads to better software.
+The only circumstance where a global variable is excusable is if it's `const` and only referred to in `main`. Otherwise, you should design your functions to be controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This **always** leads to better software.
 
-Static variables in functions are just global variables scoped to that function; the arguments above apply equally to them. Just like global variables, static variables are often used as an easy way out of providing modular, pure functions. They're often defended in the name of performance.
+Static variables in functions are just global variables scoped to that function; the arguments above apply equally to them. Just like global variables, static variables are often used as an easy way out of providing modular, pure functions. They're often defended in the name of performance (benchmarks first!).
 
 You don't need static variables, just like you don't need global variables. If you need persistent state, have the function accept that state as a argument. If you need to return something persistent, allocate memory for it.
 
@@ -152,9 +154,11 @@ You don't need static variables, just like you don't need global variables. If y
 
 #### Immutability saves lives: use `const` everywhere you can
 
-`const` improves compile-time correctness. `const` isn't just for documenting read-only pointers. It should be used for every read-only variable. It helps the reader a lot in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air; the reader is forced to comprehend the entire scope to understand what is and isn't being modified. If you consistently use `const`, then your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
+`const` improves compile-time correctness. It isn't only for documenting read-only pointers. It should be used for every read-only variable and every read-only pointee.
 
-Using `const` everywhere you can also helps you, as a developer, reason about what's happening in the control flow of your program, and where mutability is spreading. It helps your compiler help you, which is great to have.
+`const` helps the reader *immensely* in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air; the reader is forced to comprehend the entire scope to understand what is and isn't being modified. If you consistently use `const`, your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
+
+Using `const` everywhere you can also helps you, as a developer, reason about what's happening in the control flow of your program, and where mutability is spreading. Furthermore, it gets the compiler on your side. It's amazing, when using `const`, how much more helpful the compiler is, especially regarding pointers and pointees.
 
 The compiler will warn if a pointee loses `const`ness in a function call (because that would let the pointee be modified), but it won't complain if a pointee gains `const`ness. Thus, if you *don't* specify your pointer arguments as `const` when they're read-only anyway, you discourage your users from using `const` in their code:
 
@@ -170,7 +174,7 @@ sum( 3, xs );
 //             qualifier from pointer target type
 ```
 
-Using `const` isn't really a choice. Lots of people consider it beneficial, so everyone should consider it required, whether they like it or not. If you don't use `const`, you force your users to either cast all calls to your functions (yuck), ignore `const` warnings (asking for trouble), or remove those `const` qualifiers (lose compile-time correctness).
+Thus, using `const` isn't really a choice, at least for function signatures. Lots of people consider it beneficial, so everyone should consider it required, whether they like it or not. If you don't use `const`, you force your users to either cast all calls to your functions (yuck), ignore `const` warnings (asking for trouble), or remove those `const` qualifiers (lose compile-time correctness).
 
 If you're forced to work with a library that ignores `const`, you can write a macro that casts for you:
 
@@ -179,7 +183,7 @@ If you're forced to work with a library that ignores `const`, you can write a ma
 #define sum( n, xs ) sum( n, ( int * ) xs )
 ```
 
-Only provide `const` qualifiers for pointees in function prototypes - `const` for other arguments is just an implementation detail.
+Only provide `const` qualifiers for pointees in function prototypes - `const` for the argument names themselves is just an implementation detail.
 
 ``` c
 // Unnecessary
@@ -190,9 +194,9 @@ bool Trie_has( Trie, char const * );
 
 Also, only make constant the pointees of struct members, not the struct members themselves. For example, if any of your struct members should be assignable to a string literal, give that member the type `char const *`. Qualifying other members with const turns all variables of that struct into a const, and that [hurts](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) more than helps.
 
-Use `const` for return type pointees if you can, but don't worry if you can't.
+`const` for return-type pointees also tends to harm the flexibility of your interface. It's generally best to leave `const` to the declarations. Think carefully when making return types `const`.
 
-Finally, never use typecasts or pointers to get around `const` qualifiers. If the variable isn't constant, don't make it one, or if the variable is constant, add qualifiers to taste.
+Finally, never use typecasts or pointers to get around `const` qualifiers. If the variable isn't constant, don't make it one, or if the variable is constant, apply qualifiers as needed.
 
 
 
@@ -213,7 +217,7 @@ Because of this rule, you should always pad the `*` type qualifier with spaces.
 
 #### Always use `double` instead of `float`
 
-Again, from *21st Century C*, by Ben Klemens:
+From *21st Century C*, by Ben Klemens:
 
 ``` c
 printf( "%f\n", ( float )333334126.98 );    // 333334112.000000
@@ -224,7 +228,7 @@ Space isn't an issue anymore, but floating-point errors still are. It's much har
 
 Ben Klemens says there is less of imperative to use `long`s over `int`s, but it's still something you should think about:
 
-> Should we use long `int`s everywhere integers are used? The case isn't quite as open and shut. A `double` representation of π is more precise than a `float` representation of π, even though we’re in the ballpark of three; both `int` and `long` representations of numbers up to a few billion are precisely identical. The only issue is overflow, [when `int` will be entirely wrong.]
+> Should we use long `int`s everywhere integers are used? The case isn't quite as open and shut. A `double` representation of `n` is more precise than a `float` representation of `n`, even though we’re in the ballpark of three; both `int` and `long` representations of numbers up to a few billion are precisely identical. The only issue is overflow, [when `int` will be entirely wrong.]
 
 As well as this argument, I'm partial to using `int` (for now) over `long` just because it reads better. Also, `int` plays a large role in idiomatic C (e.g. return codes), so it would be quite jarring to ditch completely in favor of `long`.
 
@@ -234,13 +238,13 @@ As well as this argument, I'm partial to using `int` (for now) over `long` just 
 
 This reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than declaration (`int x;`). Initializing a variable usually means you can `const` it, too.
 
-Thus, I consider all declarations shifty.
+To me, all declarations are shifty.
 
 
 
 #### If you have to declare a variable, zero it
 
-Ben Klemens, from *21st Century C*:
+Again: Ben Klemens, from *21st Century C*:
 
 > If you declare a variable inside a function, then C won't zero it out automatically (which is perhaps odd for things called automatic variables). I'm guessing that the rationale here is a speed savings: when setting up the frame for a function, zeroing out bits is extra time spent, which could potentially add up if you call the function a million times and it's 1985. But here in the present, leaving a variable undefined is asking for trouble.
 
@@ -259,13 +263,15 @@ Unfortunately, variable-length arrays can't be initialized, so I'll usually only
 
 #### Use one line per variable definition; don't bunch same types together
 
-This makes the types easier to change in future, and atomic lines are easier to edit. If you'll need to change all their types together, you should use your editor's block editing mode.
+This makes the types easier to change in future, because atomic lines are easier to edit. If you'll need to change all their types together, you should use your editor's block editing mode.
 
-I think it's alright to bunch struct members together, though, because struct definitions are much easier to comprehend than active code.
+I think it's alright to bunch semantically-connected struct members together, though, because struct definitions are much easier to comprehend than active code.
 
 ``` c
 // Fine
-typedef struct { char r, g, b; } Color;
+typedef struct Color {
+    char r, g, b;
+} Color;
 ```
 
 
@@ -278,9 +284,7 @@ If the scope fits on a screen, and the variable is used in a lot of places, and 
 
 #### Be consistent in your variable names across functions
 
-Consistency helps your readers understand what's happening. Using different names for the same values in functions is suspicious, and forces them to check that nothing weird is happening.
-
-Also, don't use argument names like `self` or `this` for object-oriented functions because it doesn't make sense. C doesn't have methods, so name the arguments what they are. I consider C's separation of data and functionality one of its best features. Haskell, at the forefront of language design, makes the same choice. Try to embrace and appreciate what C offers, rather than grafting other paradigms onto it.
+Consistency helps your readers understand what's happening. Using different names for the same values in functions is suspicious, and forces your readers to reason about unimportant things.
 
 
 
@@ -312,7 +316,7 @@ if ( address == NULL );         // Good
 
 #### Never change state within an expression (e.g. with assignments or `++`)
 
-Please, please, **no state-changes in an expression, and one state-change per statement**.
+This happens way too much in C programming. I think it was because this was done a *lot* in *The C Programming Language*. It's a really bad habit, and makes it so much harder to follow what your program is doing. Never change state in an expression.
 
 ``` c
 Trie_add( *child, ++word );     // Bad
@@ -364,7 +368,7 @@ if ( is_tasty( banana ) ) {
 
 > Misunderstanding integer conversion rules can lead to errors, which in turn can lead to exploitable vulnerabilities. Severity: medium, Likelihood: probable.
 
-*Expert C Programming* (a great book that explores the ANSI standard) also explains this in its first chapter. The takeaway is that you shouldn't declare `unsigned` variables even if they shouldn't be negative. If you want a larger maximum value, use a `long` or `long long`. Remember, lots of dynamic languages make do with a single integer type that can be either sign. Don't worry about using `size_t`: an `int` is almost always fine for an array index.
+*Expert C Programming* (a great book that explores the ANSI standard) also explains this in its first chapter. The takeaway is that you shouldn't declare `unsigned` variables even if they shouldn't be negative. If you want a larger maximum value, use a `long` or `long long`. If your function will fail with a negative number, assert that it's positive. Remember, lots of dynamic languages make do with a single integer type that can be either sign.
 
 Unsigned values offer no type safety; even with `-Wall` and `-Wextra`, GCC doesn't bat an eyelid at `unsigned int x = -1;`.
 
@@ -374,7 +378,8 @@ Unsigned values offer no type safety; even with `-Wall` and `-Wextra`, GCC doesn
 #define NELEM( xs ) ( ( sizeof xs ) / ( sizeof xs[0] ) )
 int const xs[] = { 1, 2, 3, 4, 5, 6 };
 
-int main( void ) {
+int main( void )
+{
     int const d = -1;
     if ( d < NELEM( xs ) - 1 ) {
         return xs[ d + 1 ];
@@ -383,7 +388,11 @@ int main( void ) {
 }
 ```
 
-The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned int` (via `sizeof`). So, `d` will be promoted to an `unsigned int`. `-1` in [two's complement](https://en.wikipedia.org/wiki/Two%27s_complement) represents the largest possible unsigned value (bit-wise), so the expression will be false, and the program will return `0`.
+The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned int` (via `sizeof`). So, `d` will be promoted to an `unsigned int`. `-1` in [two's complement](https://en.wikipedia.org/wiki/Two%27s_complement) represents the largest possible unsigned value (bit-wise), so the expression will be false, and the program will return `0`. The solution in this case would be to cast the result of `NELEM`:
+
+``` c
+#define NELEM( xs ) ( long )( sizeof( xs ) / sizeof( xs[ 0 ] ) )
+```
 
 
 
@@ -425,22 +434,24 @@ The `switch` fall-through mechanism is error-prone, and you almost never want th
 
 #### Separate functions and struct definitions with two lines
 
-And limit yourself to a maximum of one blank line within functions - but, try to decompose your functions enough so you don't need internal blank lines.
+If you limit yourself to a maximum of one blank line within functions, this rule provides clear visual separation of global elements. This is a habit I learned from Python's PEP8 style guide.
 
 
 
 #### Minimize the scope of variables
 
-If a variable is only used in a contiguous sequence of lines, and only a single value is used after that sequence, then that's a great candidate for extracting to a function.
+If a few variables are only used in a contiguous sequence of lines, and only a single value is used after that sequence, then those lines are a great candidate for extracting to a function.
 
 ``` c
 // Good: addr was only used in a part of handle_request
-int accept_request( int const listenfd ) {
+int accept_request( int const listenfd )
+{
     struct sockaddr addr;
     return accept( listenfd, &addr, &( socklen_t ){ sizeof addr } );
 }
 
-int handle_request( int const listenfd ) {
+int handle_request( int const listenfd )
+{
     int const reqfd = accept_request( listenfd );
     // ... stuff not involving addr, but involving reqfd
 }
@@ -452,7 +463,8 @@ Another tactic to limit the exposure of variables is to break apart complex expr
 
 ``` c
 // Rather than:
-bool Trie_has( Trie const trie, char const * const string ) {
+bool Trie_has( Trie const trie, char const * const string )
+{
     Trie const * const child = Trie_child( trie, string[ 0 ] );
     return string[ 0 ] == '\0'
            || ( child != NULL
@@ -461,7 +473,8 @@ bool Trie_has( Trie const trie, char const * const string ) {
 
 // child is only used for the second part of the conditional, so we
 // can limit its exposure like so:
-bool Trie_has( Trie const trie, char const * const string ) {
+bool Trie_has( Trie const trie, char const * const string )
+{
     if ( string[ 0 ] == '\0' ) {
         return true;
     } else {
@@ -476,7 +489,9 @@ bool Trie_has( Trie const trie, char const * const string ) {
 
 #### Simple constant expressions can be easier to read than variables
 
-It can often help the readability of your code if you replace variables that are only assigned to constant expressions, with those expressions. Consider the `Trie_has` example above - the `word[ 0 ]` expression is repeated twice. Do you think it would be easier to read if we inserted an extra line to define a `char` variable?
+It can often help the readability of your code if you replace variables that are only assigned to constant expressions, with those expressions.
+
+Consider the `Trie_has` example above - the `word[ 0 ]` expression is repeated twice. It would be harder to read and follow if we inserted an extra line to define a `char` variable. It's just another thing that the readers would have to keep in mind. Many programmers of other languages wouldn't think twice about repeating an array access.
 
 
 
@@ -523,19 +538,44 @@ Trie_EACH( trie, i ) {
 }
 ```
 
-When you provide something like this, document what it's doing under the surface. In your documentation, encourage your users to go without the macro if they prefer. You should always provide a structure to your interfaces that will still be usable without macros.
+When you provide something like this, document what it's doing under the surface. In your documentation, encourage your users to go without the macro if they prefer. Your interfaces should be usable without macros.
 
 
 
 #### Only upper-case a macro if will act differently than a function call
 
-By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named arguments technique), then I don't consider that justification for an upper-case name.
+By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named arguments technique), then I don't consider that justification for an upper-case name. A macro should have an upper-case name if it:
 
-[A macro will break if takes an array literal as a named argument](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument), so any such macro should have an upper-case name.
+- repeats its arguments in its body, because this will break for non-pure expressions. Many compilers provide [statement expressions](http://stackoverflow.com/questions/6440021/compiler-support-of-gnu-statement-expression) to prevent this, but it's non-standard. If you do use statement expressions, you don't need to upper-case your macro name, because it's not relevant to your users.
+- modifies the calling context, e.g., with a `return` or `goto`.
+- takes an array literal as a named argument. ([why](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument))
+- implements an extra-syntactic construct, e.g., wrapping a `for` loop. (named arguments are extra-syntactic? shh!)
 
-Also, if a macro repeats its arguments in its substitution, it will break things when called with an expression. GCC provides [statement expressions](http://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Statement-Exprs.html#Statement-Exprs) as an extension to deal with this. I think there are other techniques for fixing this, but I'm not aware of them.
+Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
 
-Also, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
+
+
+#### Don't bother aligning `\` in multi-line macros, because it won't last
+
+Aligning the `\` is high-maintenance and painful, so any alignment errors probably won't get fixed. By the broken-window theory, this will lead to worse things. So, just don't bother with it.
+
+Instead, put the `\` separated by one space from the last character on the line, and be done with it.
+
+
+
+#### If a macro will only be used in a function, `#define` and `#undef` it in the body
+
+For the same reasons why we should always minimize the scope of our variables, if we can limit the scope of our macros, we should.
+
+``` c
+// Good
+bool Alphabet_is_valid( Alphabet const ab ) {
+    #define REQUIRE( c ) if ( !( c ) ) return false;
+    REQUIRE( ab.size > 0 );
+    ...
+    #undef REQUIRE
+}
+```
 
 
 
@@ -546,7 +586,7 @@ Always initialize your string literals as arrays, unless you have a very good re
 ``` c
 // Good
 char const message[] = "always use arrays for strings!";
-write( output, message, sizeof message );
+write( output, message, sizeof( message ) );
 ```
 
 
@@ -558,10 +598,11 @@ Due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs 
 - compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler can only copy that field
 - dereferencing pointers is slow - it's better to give the function frame the actual data straight-up
 - most structs are only a few bytes, so copying is negligible
+- are you optimizing without benchmarks?
 
 Defining a *modification* is tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the value's public state. This depends on common-decency of users of the interface to respect visibility comments.
 
-So, if a struct will be "modified" by a function, have that function accept a pointer-to-const of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which of its members are pointers.
+So, if a struct will be "modified" by a function, have that function accept a pointer-to-const of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which structs have pointer members.
 
 ``` c
 typedef struct {
@@ -601,13 +642,13 @@ void Country_fire_ze_missiles( Country const country ) {
 }
 ```
 
-The other case to use pointer arguments is if the function *needs* nullity (poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, **use const to signal that the pointer is not for modification**.
+The other case to use pointer arguments is if the function *needs* nullity (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, use const to signal that the pointer is not for modification, and add a `maybe` prefix to such variables to signal that the function should account for `NULL`.
 
 ``` c
 // Good: `NULL` represents an empty list, and list is a pointer-to-const
-int List_length( List const * list ) {
+int List_length( List const * maybe_list ) {
     int length = 0;
-    for ( ; list != NULL; list = list->next ) {
+    for ( ; maybe_list != NULL; list = list->next ) {
         length += 1;
     }
     return length;
@@ -615,6 +656,12 @@ int List_length( List const * list ) {
 ```
 
 If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. Furthermore, when your readers see a dereference in a call to a function, they can be totally certain that it won't be changed by that function (when you can't make the pointee constant).
+
+
+
+#### If a function returns a pointer for nullity, put a `maybe` in its name
+
+If a function returns a pointer so it can return `NULL` as a sentinel value, it can help to put a `maybe` in the function's name to signal to callers that they need to account for a `NULL` return value. This mimics the `Maybe` typeclass in Haskell (which is appearing in other languages now too).
 
 
 
@@ -628,13 +675,33 @@ Yeah, `[]` hints that the argument will be treated as an array, but so does a pl
 
 
 
+#### Document your struct invariants, and provide invariant checkers
+
+> An **invariant** is a condition that can be relied upon to be true during execution of a program.
+
+For any function that takes a struct (or a pointer), all invariants of that struct should be true before and after the execution of the function. Invariants make it the caller's responsibility to provide valid data, and the function's responsibility to return valid data. Invariants save those functions from having to repeat assertions of those conditions, or worse, not even checking and working with invalid data.
+
+Provide an "invariants" comment section at the end of your struct definition, and list all the invariants you can think of. Also, implement `is_valid` and `assert_valid` functions for users to check those assertions on values of the structs they create on their own. These functions are crucial to being able to trust that the invariants hold for value of that struct. Without them, how will callers know?
+
+My university faculty is [pretty big](http://www.itee.uq.edu.au/sse/projects) on software correctness. It certainly rubbed off on me.
+
+
+
 #### Use `assert` everywhere your program would fail otherwise
 
 Good software fails fast. Also, assertion errors are much more informative than segmentation faults. If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between arguments.
 
-That said, don't repeat your assertions. If `foo` first calls `bar`, and `bar` first calls `baz`, and all three functions need the `widget` argument to be non-null, then just assert that `widget` isn't null in `baz`, and treat that assertion as transitive to `bar`, and thus to `foo`. My rule is, as title, "only assert where it will fail otherwise". This means if another assert already has your back, don't sweat it.
+Don't assert struct invariants, because they aren't the function's responsibility.
 
-Also, don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise (like null pointers). Never write assertions for the properties of user input.
+Don't repeat assertions. If `foo` first calls `bar`, and `bar` first calls `baz`, and all three functions need the `widget` argument to be non-null, then just assert that `widget` isn't null in `baz`, and treat that assertion as transitive to `bar`, and thus to `foo`. My rule is, as titled, "only assert where it will fail otherwise". This means if another assert already has your back, don't sweat it.
+
+Don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise (like null pointers). Never let user input invalidate your assertions: filter it first, or report the error.
+
+
+
+#### Repeat `assert` calls; don't `&&` them together
+
+Repeating your `assert` calls improves the assertion error reporting, and is more readable.
 
 
 
@@ -677,25 +744,7 @@ If it's valid to assign a value of one type to a variable of another type, then 
 
 - performing true division (not integer division) of `int` expressions
 - making an array index an `int`, but you can do this with assignment anyway
-- using compound literals for structs and arrays; C doesn't infer them :(
-
-
-
-#### Only typedef structs; never basic types or pointers
-
-``` c
-// Bad
-typedef double centermeters;
-typedef double inches;
-typedef struct Apple * Apple;
-typedef void * gpointer;
-```
-
-This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and ignore the typedefs in other interfaces.
-
-Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
-
-Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and arguments that will be modified (and losing the benefits of that).
+- using compound literals for structs and arrays
 
 
 
@@ -709,9 +758,27 @@ typedef struct Person {
 } Person;
 ```
 
-CamelCase names should be exclusively used for structs so that they're recognizable. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability if and when the struct definition becomes large.
+CamelCase names should be exclusively used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability when the struct definition becomes large.
 
-My only exception is that I don't typedef structs used for named arguments (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
+I don't typedef structs used for named arguments (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
+
+
+
+#### Only typedef structs; never basic types or pointers
+
+``` c
+// Bad
+typedef double centermeters;
+typedef double inches;
+typedef struct Apple * Apple;
+typedef void * gpointer;
+```
+
+This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and try to ignore the typedefs in other interfaces.
+
+Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
+
+Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and arguments that will be modified (and losing the benefits of that).
 
 
 
@@ -719,7 +786,7 @@ My only exception is that I don't typedef structs used for named arguments (see 
 
 Every pointer in a struct is an opportunity for a segmentation fault.
 
-If the would-be pointer shouldn't be NULL, isn't an array of an unknown size, and isn't of the type of the struct itself, then don't make it a pointer. Just include the type itself in the struct. Don't worry about the size of the containing struct until you've finished development and have done benchmarks.
+If the would-be pointer shouldn't be NULL, isn't an array of an unknown size, and isn't of the type of the struct itself, then don't make it a pointer. Just include a member of the type itself in the struct. Don't worry about the size of the containing struct until you've done benchmarks.
 
 
 
@@ -774,29 +841,33 @@ struct run_server_options {
 
 // default values were specified above
 
-int run_server( struct run_server_options opts ) {
+int run_server( struct run_server_options opts )
+{
     ...
 }
 
-int main( void ) {
+int main( void )
+{
     return run_server( .port = "3490", .backlog = 10 );
 }
 ```
 
-I learnt this from *21st Century C*. So many C interfaces could be improved immensely if they took advantage of this technique. You can define a macro to make this easier for multiple functions.
+I learnt this from *21st Century C*. So many C interfaces could be improved immensely if they took advantage of this technique. The importance and value of (syntactic) named arguments is often understated in software development. If you're not convinced, read Bret Victor's [Learnable Programming](http://worrydream.com/LearnableProgramming/).
+
+Back to C: you can define a macro to make it easier to define functions with named arguments.
 
 Don't use named arguments everywhere. If a function's only argument happens to be a struct, that doesn't necessarily mean it should become the named arguments for that function. A good rule of thumb is that if the struct is used outside of that function, you shouldn't hide it with a macro like above.
 
 ``` c
 // Good; the typecast here is informative and expected.
-Trie_new( ( Alphabet ){ .start = 'a', .size = 26 } );
+Book_new( ( Author ){ .name = "Dennis Ritchie" } );
 ```
 
 
 
 #### Prefer `_new()` functions with named arguments to struct literals
 
-When a "required" member is added to a struct, all previous `_new()` calls will become errors, whereas struct literals without that required member will still compile:
+Providing `_new()` functions to users gives you more flexibility later on. When a "required" member is added to a struct, all previous `_new()` calls will become errors, whereas struct literals without that required member will still compile:
 
 ``` c
 // Suppose we add a required `age` field to the `Character` struct,
@@ -814,17 +885,19 @@ Character a = Character_new( "Arthur", .dexterity = 3 );
 Character b = { .name = "Brock", .strength = 5 };
 ```
 
-Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required arguments.
+Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required arguments. Also, functions can't be called when defining global variables: you have to use struct literals then.
 
-Also, `_new()` function calls become really hard to decipher when you have more than a few required arguments. I haven't worked out a way to have required, named arguments with compile-time correctness other than to have comments beside the calls. Lots of required arguments is often be a code-smell, anyway.
+`_new()` function calls become really hard to read when you have more than a few required arguments. I haven't worked out a way to have required, named arguments with compile-time correctness other than to have comments beside the calls. Lots of required arguments is often be a code-smell, anyway.
 
 
 
-#### Only provide getters and setters if you need the encapsulation
+#### Only provide getters and setters if you *need* the encapsulation
 
-*Needing* encapsulation in C is often a sign that you're overcomplicating things. Anyway, if you do, use getters and setters to show that extra computation is happening behind the scenes when they're called, and specify fields as private in the struct definition with a comment. Don't prefix private struct members with `_`: you don't need to, it looks ugly, and it ties the access level with the name, which will make it a pain to change later.
+*Needing* encapsulation in C is often a sign that you're overcomplicating things. Anyway, if you do, only use getters and setters to show that extra computation is happening behind the scenes when they're called, and specify fields as private in the struct definition with a comment.
 
 If there's nothing special happening behind the scenes, let your users get and set the struct members directly. Struct members should default to public unless you have a good reason to make them private. Yes, this will mean the public interface will have to change often. I consider the simplicity and brevity of direct member access to be worth it.
+
+Don't prefix private struct members with `_`: you don't need to, it looks ugly, and it ties the access level with the name, which will make it a pain to change later. Also, if you do without `_` prefixes, users can just access the members of the struct directly, as below:
 
 ``` c
 // Good
@@ -833,7 +906,7 @@ c = City_set_state( c, "BC" );
 printf( "%s is in %s, did you know?\n", c.name, c.country );
 ```
 
-But you should always give your users the option of [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming):
+But you should always provide an interface that allows for [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming):
 
 ``` c
 // Better
@@ -841,6 +914,18 @@ City const c = City_new( "Boston", .state = "MA" );
 printf( "I think I'm going to %s\n"
         "Where no one changes my state\n", c.name );
 ```
+
+
+
+#### C isn't object-oriented, and you shouldn't pretend it is
+
+C doesn't have classes, methods, inheritance, object encapsulation, or polymorphism. Not to be rude, but: **deal with it**. C might be able to achieve crappy, complicated imitations of those things, but it's just not worth it.
+
+As it turns out, C already has an entirely-capable language model. In C, we define data structures, and we define functionality that uses combinations of those data structures. Data and functionality aren't intertwined in complicated contraptions, and this is a good thing.
+
+Haskell, at the forefront of language design, made the same decision to separate data and functionality. Learning Haskell is one of the best things a programmer can do to improve their technique, but I think it's especially beneficial for C programmers, because of the underlying similarities between C and Haskell. Yes, C doesn't have anonymous functions, and no, you won't be writing monads in C anytime soon. But by learning Haskell, you'll learn how to write good software without classes, without mutability, and with modularity, and these qualities are very beneficial for C programming.
+
+Embrace and appreciate what C offers, rather than attempting to graft other paradigms onto it.
 
 
 
@@ -856,26 +941,38 @@ If you're providing `Foo_new` and `Foo_free` methods only so you can allocate me
 
 
 
-#### Use GNU Make's implicit rules, `CPPFLAGS`, `CFLAGS`, and `LDLIBS`
+#### Use GCC's and Clang's `-M` to automatically generate object file dependencies
 
-GNU Make has an implicit rule to make an object file from the corresponding C source file:
+The GNU Make Manual [touches](https://www.gnu.org/software/make/manual/make.html#Automatic-Prerequisites) on how to automatically generate the dependencies of your object files from the source file's `#include`s. The example rule given in the manual is a bit complicated. Here's the rules I use:
 
 ``` make
-%.o: %.c
-    $(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+# Have the compiler output dependency files with make targets for each
+# of the object files. The `MT` option specifies the dependency file
+# itself as a target, so that it's regenerated when it should be.
+dependencies = $(objects:.o=.d)
+%.d: %.c
+	$(CC) -M -MT '$(@:.d=.o) $@' $(CPPFLAGS) $< > $@
+
+# Include each of those dependency files; Make will run the rule above
+# to generate each dependency file (if it needs to).
+-include $(dependencies)
 ```
 
-This saves you from having to specify the C source file as a dependency of the object file, or how to build most any object file. Use `CPPFLAGS` to control the preprocessor, `CFLAGS` to control the compiler, and `LDFLAGS` to control the linker. Use these variables in your own rules when you need to.
-
-Be explicit, but try to avoid defining something you don't need to.
 
 
+#### Always develop and compile with all warnings (and more) on
 
-#### For development, always compile with warnings, optimizations and debugging
+No excuses here. Always develop and compile with warnings on. It turns out, though, that `-Wall` and `-Wextra` actually don't enable "all" warnings. There are a few others that can actually be really helpful:
 
-``` sh
-$ gcc -g -Og -Wall -Wextra -Wpedantic -Werror
+``` make
+CFLAGS += -Wall -Wextra -Wpedantic \
+          -Wformat=2 -Wunused -Wno-unused-parameter -Wuninitialized \
+          -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
+          -Wredundant-decls -Wnested-externs
+
+# GCC warnings that Clang doesn't provide:
+ifeq ($(CC),gcc)
+    CFLAGS += -Wjump-misses-init -Wlogical-op
+endif
 ```
-
-Optimizations can catch errors that will be missed even with all warnings on, like removing undefined behavior or unused variables. `-Og` enables optimizations that don't interfere with debugging; the GCC manual describes it as *the optimization level of choice for the edit-compile-debug cycle*. `-Werror` makes warnings errors, which speeds up the development cycle when compilation is slow.
 
