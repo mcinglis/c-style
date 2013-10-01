@@ -724,7 +724,7 @@ As mentioned in the rule on zeroing declared variables, variable-length arrays c
 
 #### Avoid `void *` and `union`s because they harm type safety
 
-`void*` and `union` are useful for polymorphism, but polymorphism is almost never as important as type safety. See if you can avoid them by (ab)using the preprocessor. Read *21st Century C* for inspiration.
+`void *` and `union` are useful for polymorphism, but polymorphism is almost never as important as type safety. Void pointers and unions are indispensable in many situations, but you should consider other, safer alternatives first.
 
 
 
@@ -869,7 +869,7 @@ Providing `_new()` functions to users gives you more flexibility later on. When 
 // Suppose we add a required `age` field to the `Character` struct,
 // and update the `_new()` function accordingly.
 
-Character Character__new( char name[ static 1 ], int age, Character options );
+Character Character__new( char * name, int age, Character options );
 
 #define Character_new( name, age, ... ) \
     Character__new( name, age, ( Character ){ __VA_ARGS__ } )
