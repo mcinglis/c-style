@@ -1,13 +1,9 @@
 # C Style
 
-I've never done anything useful with C, but I read a lot about C, and play around with it. I often read other people's C, often in the hopes of contributing to some project, only to give up in disgust of the interface and their practices. Then, I consider implementing a greenfield version of that project, and look at what projects they depend on. Rinse repeat, until I'm considering writing wrappers around the standard library, or writing monadic Haskell or [Rust](http://www.rust-lang.org/) bindings. Sigh.
-
-My programming ability is hindered by my inability to work with bad interfaces. I think the best engineers are those who can make do with what they're given; I can't, unless it's for work or school.
-
-Anyway, this document describes what I consider good C (which I very rarely see). Some points are as trivial as style, while others are more intricate. Some points I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
+This document describes what I consider good C. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
-* compilers are better at optimizing than humans, and they're only going to get better
+* compilers are generally better at optimizing than humans, and they're only going to get better
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
