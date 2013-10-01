@@ -35,7 +35,13 @@ int main( void ) {
 }
 ```
 
-But, alas, we (and our editors) rarely get it right. I prefer to cut the complexity and only use spaces, because that's harder to get wrong.
+But, alas, we (and our editors) rarely get it right. There are three main problems posed by using tabs and spaces:
+
+- It's harder to align things using only the space bar. It's much easier to hit tab twice then hold space for eight characters. A developer on your project *will* make this mistake eventually.
+- It's easier to automatically protect against the presence of tabs in source code, than to protect against tabs used for alignment.
+- Tabs for indentation lead to inconsistencies between opinions on line lengths. Someone who uses a tab width of 8 will hit 80 characters much sooner than someone who uses a tab width of 2.
+
+Let's just all cut the complexity, and use spaces, okay? You may have to adjust to someone else's indent width every now and then. Tough luck!
 
 
 
@@ -47,6 +53,14 @@ Stick to single-line comments, and cut the complexity. Compared to single-line c
 - have a style, which has to be specified and adhered to
 - often have `*/` on its own line, so they're more line-expensive
 - have weird rules about embedded `/*` and `*/`
+
+You have to use `/* ... */` in multi-line `#define`s, though:
+
+``` c
+#define MAGIC( x ) \
+    /* Voodoo magic happens here. */ \
+    ...
+```
 
 
 
@@ -420,7 +434,7 @@ return hungry == true
 
 #### Use `if`s instead of `switch`
 
-The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Also, `case` values have to be an integral constant expression, so they can't match against another variable. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
+The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Worse, a missing `break` will still compile: this tripped me up all the time when I used `switch`. Also, `case` values have to be an integral constant expression, so they can't match against another variable. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
 
 `if` has none of these issues, is simpler, and easier to change.
 
