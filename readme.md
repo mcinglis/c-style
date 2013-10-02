@@ -4,7 +4,7 @@ This document describes what I consider good C. I've found these rules to be ben
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
 * compilers are generally better at optimizing than humans, and they're only going to get better
-* backwards compatibility holds everyone back, and we should move forward if we can (if *you* can't, that's OK!)
+* backwards compatibility holds everyone back, and we should move forward if we can (if you can't, that's OK!)
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
@@ -125,9 +125,10 @@ Namespaces are one of the great advances of software development. Unfortunately,
 
 ``` c
 #include <stdlib.h>     // size_t, calloc, free
+#include "trie.h"       // Trie, Trie_*
 ```
 
-If the name occurs in your source code, it should be declared in that file, or mentioned in a comment beside the header file it's declared in. It's terrible to require readers to refer to documentation or use grep to get this information. I've never seen any projects that do this, but I think it would be great if more did.
+With something like this, you're requiring your readers to refer to documentation or use grep to get this information: that sucks. I've never seen any projects that do this, but I think it would be great if more did.
 
 You can use `man <func>` to find out where a standard library function is defined, and `man stdlib.h` to get documentation on that header (to see what it defines).
 
@@ -159,11 +160,9 @@ Global variables are just hidden arguments to all the functions that use them. T
 
 Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-The only circumstance where a global variable is excusable is if it's `const` and only referred to in `main`. Otherwise, you should design your functions to be controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This **always** leads to better software.
+The only circumstance where a global variable is excusable is if it's `const` and only referred to in `main`. Otherwise, you should design your functions to be controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This *always* leads to better software.
 
-Static variables in functions are just global variables scoped to that function; the arguments above apply equally to them. Just like global variables, static variables are often used as an easy way out of providing modular, pure functions. They're often defended in the name of performance (benchmarks first!).
-
-You don't need static variables, just like you don't need global variables. If you need persistent state, have the function accept that state as a argument. If you need to return something persistent, allocate memory for it.
+Static variables in functions are just global variables scoped to that function; the arguments above apply equally to them. Just like global variables, static variables are often used as an easy way out of providing modular, pure functions. They're often defended in the name of performance (benchmarks first!). You don't need static variables, just like you don't need global variables. If you need persistent state, have the function accept that state as a argument. If you need to return something persistent, allocate memory for it.
 
 
 
@@ -183,7 +182,7 @@ int sum( int n, int * xs );
 
 // Because otherwise, this will be a compilation warning:
 int const xs[] = { 1, 2, 3 };
-sum( 3, xs );
+return sum( 3, xs );
 
 // => warning: passing argument 2 of ‘sum’ discards ‘const’
 //             qualifier from pointer target type
@@ -289,17 +288,20 @@ int print_steps = 0;             // Bad - is this counting steps?
 
 #### Use explicit comparisons instead of relying on truthiness
 
-Explicit comparisons tell the reader what they're working with, because it's not always obvious in C. Are we working with counts or booleans or pointers?
+Explicit comparisons tell the reader what they're working with, because it's not always obvious in C. Are we working with counts or characters or booleans or pointers?
 
 ``` c
-if ( !num_kittens );            // Bad, though the name helps
-if ( balance != 0 );            // Good
+// Bad - what are these expressions actually testing for?
+if ( !kittens );
+if ( first );
+if ( on_fire );
+if ( !address );
 
-if ( on_fire );                 // Bad; not obvious it's a boolean
-if ( is_hostile == true );      // Good
-
-if ( !address );                // Bad; not obvious it's a pointer
-if ( address == NULL );         // Good
+// Good - informative, and eliminates ambiguity
+if ( kittens == 0 );
+if ( first != '\0' );
+if ( on_fire == true );
+if ( address == NULL );
 ```
 
 
@@ -327,7 +329,7 @@ a = b = c;
 
 // Fine - there's no better way.
 int x;
-while ( x = action(), test( x ) ) {
+while ( x = action(), test( x ) == false ) {
     do_something( x );
 }
 ```
@@ -336,7 +338,7 @@ But don't use multiple assignment unless the variable's values are semantically 
 
 
 
-#### Only put function calls in expressions if it reads naturally
+#### Avoid non-trivial function calls in expressions
 
 Assign function calls to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value). This avoids surprising your readers with hidden state changes. Even if you think it's obvious, and it will save you a line - it's not worth the potential for a slip-up. Stick to this rule, and don't think about it.
 
@@ -351,7 +353,7 @@ if ( rv == -1 ) {
 }
 
 // Good
-if ( is_tasty( banana ) ) {
+if ( is_tasty( banana ) == true ) {
     eat( banana );
 }
 ```
@@ -390,13 +392,13 @@ The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned
 #define NELEM( xs ) ( long )( sizeof( xs ) / sizeof( xs[ 0 ] ) )
 ```
 
-You will need to use unsigned values to provide [well-defined bit operations](http://stackoverflow.com/questions/4009885/arithmetic-bit-shift-on-a-signed-integer) and modular arithmetic overflow. But, try to keep them contained, and don't let them interact with signed values.
+You will need to use unsigned values to provide [well-defined bit operations](http://stackoverflow.com/questions/4009885/arithmetic-bit-shift-on-a-signed-integer) and modular arithmetic overflow. But, try to keep those values contained, and don't let them interact with signed values.
 
 
 
 #### Use `+= 1` and `-= 1` over `++` and `--`
 
-Actually, don't use either form if you can help it. Changing state should always be avoided (within reason). But, when you have to, `+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the good parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression.
+Actually, don't use either form if you can help it. Changing state should always be avoided (within reason). But, when you have to, `+=` and `-=` are obvious, simpler and less cryptic than `++` and `--`, and useful in other contexts and with other values. Also, there are no tricks about the evaluation of `+=` and `-=` and they don't have weird twin operators to provide alternative evaluations. Python does without `++` and `--` operators, and Douglas Crockford excluded them from the Good Parts of JavaScript, because we don't need them. Sticking to this rule also encourages you to avoid changing state within an expression.
 
 
 
@@ -521,7 +523,7 @@ setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
 
 
 
-#### Use macros to eliminate repetition
+#### Avoid macros that hide things
 
 C can only get you so far. The preprocessor is how you meta-program C. Too many developers don't know about the [advanced features of the preprocessor](https://en.wikibooks.org/wiki/C_Programming/Preprocessor#.23define), like symbol stringification (`#`) and concatenation (`##`). I sometimes define macros to make the users' life easier. They don't have to use the macro if they don't want to, but users who do will probably appreciate it.
 
@@ -547,7 +549,6 @@ By "act differently", I mean if things will break when users wouldn't expect the
 - repeats its arguments in its body, because this will break for non-pure expressions. Many compilers provide [statement expressions](http://stackoverflow.com/questions/6440021/compiler-support-of-gnu-statement-expression) to prevent this, but it's non-standard. If you do use statement expressions, you don't need to upper-case your macro name, because it's not relevant to your users.
 - modifies the calling context, e.g., with a `return` or `goto`.
 - takes an array literal as a named argument. ([why](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument))
-- implements an extra-syntactic construct, e.g., wrapping a `for` loop. (named arguments are extra-syntactic? shh!)
 
 Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
 
@@ -801,7 +802,7 @@ void Drink_mix( Drink * const drink, Ingredient const ingr ) {
 
 // Good: immutability rocks, pure functions everywhere
 Drink Drink_mix( Drink const drink, Ingredient const ingr ) {
-    return ( Drink ) {
+    return ( Drink ){
         .color = Color_blend( drink.color, ingr.color ),
         .alcohol = drink.alcohol + ingr.alcohol
     };
@@ -832,12 +833,11 @@ struct run_server_options {
 
 #define run_server( ... ) \
     _run_server( ( struct run_server_options ){ \
+        /* default values */ \
         .port = "45680", \
         .backlog = 5, \
         __VA_ARGS__ \
     } )
-
-// default values were specified above
 
 int run_server( struct run_server_options opts )
 {
@@ -885,7 +885,7 @@ Character b = { .name = "Brock", .strength = 5 };
 
 Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required arguments. Also, functions can't be called when defining global variables: you have to use struct literals then.
 
-`_new()` function calls become really hard to read when you have more than a few required arguments. I haven't worked out a way to have required, named arguments with compile-time correctness other than to have comments beside the calls. Lots of required arguments is often be a code-smell, anyway.
+`_new()` function calls become really hard to read when you have more than a few required arguments. I haven't worked out a way to have required, named arguments with compile-time correctness other than to have comments beside the arguments. In these situations, I'll usually opt to sacrifice safety for readability, and just accept an option struct. Lots of required arguments is often a code-smell, anyway.
 
 
 
