@@ -45,6 +45,12 @@ Let's just all cut the complexity, and use spaces, okay? You may have to adjust 
 
 
 
+#### 80 characters is a hard limit
+
+Sticking to 80 characters lets us size our editor windows to that size, and fit more on the screen. If you go over 80 characters, you're adding an extra burden on your readers. Treat 80 characters as a hard limit: no ifs or buts.
+
+
+
 #### Use `//` comments everywhere, never `/* ... */`
 
 Stick to single-line comments, and cut the complexity. Compared to single-line comments, multi-line comments:
@@ -951,7 +957,7 @@ No excuses here. Always develop and compile with warnings on. It turns out, thou
 
 ``` make
 CFLAGS += -Wall -Wextra -Wpedantic \
-          -Wformat=2 -Wunused -Wno-unused-parameter \
+          -Wformat=2 -Wunused -Wno-unused-parameter -Wshadow \
           -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
           -Wredundant-decls -Wnested-externs
 
