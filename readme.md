@@ -323,6 +323,12 @@ if ( x == 0 );
 
 // Fine (technically an assignment within an expression)
 a = b = c;
+
+// Fine - there's no better way.
+int x;
+while ( x = action(), test( x ) ) {
+    do_something( x );
+}
 ```
 
 But don't use multiple assignment unless the variable's values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
