@@ -1,9 +1,10 @@
 # C Style
 
-This document describes what I consider good C. I've found these rules to be beneficial for *me*, in the domains *I* work in. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
+This document describes what I consider good C. I've found these rules to be beneficial for *me*, in the domains *I* work in. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed and backwards-compatibility, because:
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
 * compilers are generally better at optimizing than humans, and they're only going to get better
+* backwards compatibility holds everyone back, and we should move forward if we can (if *you* can't, that's OK!)
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
@@ -406,8 +407,8 @@ Actually, don't use either form if you can help it. Changing state should always
 int x = a * b + c / d;          // Bad
 int x = ( a * b ) + ( c / d );  // Good
 
-&( ( struct sockaddr_in* ) sa )->sin_addr;      // Bad
-&( ( ( struct sockaddr_in* ) sa )->sin_addr );  // Good
+&( ( struct sockaddr_in * ) sa )->sin_addr;      // Bad
+&( ( ( struct sockaddr_in * ) sa )->sin_addr );  // Good
 ```
 
 You can and should make exceptions for commonly-seen combinations of operations. For example, skipping the operators when combining the equality and boolean operators is fine, because readers are probably used to that, and are confident of the result.
