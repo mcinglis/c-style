@@ -223,7 +223,7 @@ Because of this rule, you should always pad the `*` type qualifier with spaces.
 
 
 
-#### Always use `double` instead of `float`
+#### Use `double` rather than `float`, unless you have a specific reason otherwise
 
 From *21st Century C*, by Ben Klemens:
 
@@ -232,13 +232,7 @@ printf( "%f\n", ( float )333334126.98 );    // 333334112.000000
 printf( "%f\n", ( float )333334125.31 );    // 333334112.000000
 ```
 
-Space isn't an issue anymore, but floating-point errors still are. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. `float` is another thing we just don't need anymore, so don't use it and your C programming will be simpler.
-
-Ben Klemens says there is less of imperative to use `long`s over `int`s, but it's still something you should think about:
-
-> Should we use long `int`s everywhere integers are used? The case isn't quite as open and shut. A `double` representation of `n` is more precise than a `float` representation of `n`, even though we’re in the ballpark of three; both `int` and `long` representations of numbers up to a few billion are precisely identical. The only issue is overflow, [when `int` will be entirely wrong.]
-
-As well as this argument, I'm partial to using `int` (for now) over `long` just because it reads better. Also, `int` plays a large role in idiomatic C (e.g. return codes), so it would be quite jarring to ditch completely in favor of `long`.
+Space isn't an issue anymore, but floating-point errors still are. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. Unless you have a very specific reason to use `float`s, use `double`s instead. Don't use `float`s "because they will be faster", because without benchmarks, you can't know if it actually makes any discernible difference. Finish development, then perform benchmarks to identify the choke-points, then use `float`s in those areas, and see if it actually helps. Don't prematurely optimize.
 
 
 
@@ -417,7 +411,7 @@ return hungry == true
 
 #### Use `if`s instead of `switch`
 
-The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Worse, a missing `break` will still compile: this tripped me up all the time when I used `switch`. Also, `case` values have to be an integral constant expression, so they can't match against another variable. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
+The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Worse, a missing `break` will still compile: this tripped me up all the time when I used `switch`. Also, `case` values have to be an integral constant expression, so they can't match against another variable. This discourages extractions of logic to functions. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
 
 `if` has none of these issues, is simpler, and easier to change.
 
