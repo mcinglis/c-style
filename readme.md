@@ -1,6 +1,6 @@
 # C Style
 
-This document describes what I consider good C. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
+This document describes what I consider good C. I've found these rules to be beneficial for *me*, in the domains *I* work in. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed, because:
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
 * compilers are generally better at optimizing than humans, and they're only going to get better
@@ -389,7 +389,7 @@ The `if` branch won't be executed, because `NELEM` will evaluate to an `unsigned
 #define NELEM( xs ) ( long )( sizeof( xs ) / sizeof( xs[ 0 ] ) )
 ```
 
-You will need to use unsigned values to provide [well-defined bit-shift](http://stackoverflow.com/questions/4009885/arithmetic-bit-shift-on-a-signed-integer). But, try to keep them contained, and don't let them interact with signed values.
+You will need to use unsigned values to provide [well-defined bit operations](http://stackoverflow.com/questions/4009885/arithmetic-bit-shift-on-a-signed-integer) and modular arithmetic overflow. But, try to keep them contained, and don't let them interact with signed values.
 
 
 
