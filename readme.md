@@ -291,24 +291,24 @@ int print_steps = 0;             // Bad - is this counting steps?
 Explicit comparisons tell the reader what they're working with, because it's not always obvious in C. Are we working with counts or characters or booleans or pointers?
 
 ``` c
-// Bad - what are these expressions actually testing for?
-if ( !kittens );
-if ( first );
+// Bad - what are these expressions actually testing for (if at all?)
 if ( on_fire );
-if ( !address );
+while ( kittens );
+something( first );
+return !address;
 
 // Good - informative, and eliminates ambiguity
-if ( kittens == 0 );
-if ( first != '\0' );
 if ( on_fire == true );
-if ( address == NULL );
+while ( kittens != 0 );
+something( first != '\0' );
+return address == NULL;
 ```
 
 
 
 #### Never change state within an expression (e.g. with assignments or `++`)
 
-This happens way too much in C programming. I think it was because this was done a *lot* in *The C Programming Language*. It's a really bad habit, and makes it so much harder to follow what your program is doing. Never change state in an expression.
+Readable programs flow from top to bottom: not right to left. Unfortunately, this happens way too much in C programming. I think the habit and practice was started by *The C Programming Language*, and it's stuck with much of the culture ever since. It's a really bad habit, and makes it so much harder to follow what your program is doing. Never change state in an expression.
 
 ``` c
 Trie_add( *child, ++word );     // Bad
