@@ -1,6 +1,6 @@
 # C Style
 
-This document describes what I consider good C. I've found these rules to be beneficial for *me*, in the domains *I* work in. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed and backwards-compatibility, because:
+This is a document of my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed and backwards-compatibility, because:
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
 * compilers are generally better at optimizing than humans, and they're only going to get better
@@ -8,7 +8,9 @@ This document describes what I consider good C. I've found these rules to be ben
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
-Many of these rules are just good programming practices, and apply outside of C programming. Writing this guide made me deeply consider, and reconsider, best C programming practices. I've changed my opinion multiple times on many of the rules in this document.
+If you don't agree with something, that's perfectly fine. Pick and choose what you like, and what works for your own situation. These rules are just my preferences, and work well for what I do, and what I care about.
+
+Writing this guide has made me deeply consider, and reconsider, best C programming practices. I've changed my opinion multiple times on many of the rules in this document.
 
 So, I'm certain I'm wrong on even more points. This is a constant work-in-progress; issues and pull-requests are very welcome. This guide is licensed under the [Creative Commons Attribution-ShareAlike](/license.md), so I'm not liable for anything you do with this, etc.
 
@@ -38,17 +40,21 @@ int main( void ) {
 
 But, alas, we (and our editors) rarely get it right. There are three main problems posed by using tabs and spaces:
 
-- It's harder to align things using only the space bar. It's much easier to hit tab twice then hold space for eight characters. A developer on your project *will* make this mistake eventually.
+- It's harder to align things using only the space bar. It's much easier to hit tab twice than to hold the space bar for eight characters. A developer on your project *will* make this mistake eventually.
+- Tabs for indentation lead to inconsistencies between opinions on line lengths. Someone who uses a tab width of 8 will hit 80 characters much sooner than someone who uses a tab width of 2. The only way to avoid this is to dictate a tab-width, which eliminates the benefit of tabs.
 - It's easier to automatically protect against the presence of tabs in source code, than to protect against tabs used for alignment.
-- Tabs for indentation lead to inconsistencies between opinions on line lengths. Someone who uses a tab width of 8 will hit 80 characters much sooner than someone who uses a tab width of 2.
 
-Let's just all cut the complexity, and use spaces, okay? You may have to adjust to someone else's indent width every now and then. Tough luck!
+Cut the complexity, and use spaces everywhere. You may have to adjust to someone else's indent width every now and then. Tough luck!
 
 
 
 #### 80 characters is a hard limit
 
-Sticking to 80 characters lets us size our editor windows to that size, and fit more on the screen. If you go over 80 characters, you're adding an extra burden on your readers. Treat 80 characters as a hard limit: no ifs or buts.
+Sticking to 80 characters lets us size our editor windows to that size, and fit more on the screen. If you go over 80 characters, you're adding an extra burden on your readers. It's a real pain for me, having to move the cursor to scroll the window right.
+
+Furthermore, 80 characters provides a nice column size that's easy to read, because the beginning and ends of a line are much closer, so your eye travels better. 100 and 120 character width-columns provide a much harder gap to jump.
+
+Treat 80 characters as a hard limit: no ifs or buts.
 
 
 
@@ -60,6 +66,8 @@ Stick to single-line comments, and cut the complexity. Compared to single-line c
 - have a style, which has to be specified and adhered to
 - often have `*/` on its own line, so they're more line-expensive
 - have weird rules about embedded `/*` and `*/`
+- are harder/impossible to block-edit, and to extend
+- are more visually-cluttering than `//`
 
 You have to use `/* ... */` in multi-line `#define`s, though:
 
