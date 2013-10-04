@@ -83,36 +83,34 @@ You have to use `/* ... */` in multi-line `#define`s, though:
 
 
 
-#### Don't comment what the code says, and make the code as informative as you can
+#### Don't comment what the code says, or what it could say
+
+If there's bad naming or bad design that you can fix, fix it. Don't use comments to conceal such mistakes. Keep in mind, this rule doesn't mean you shouldn't *explain* what the code says: you definitely should, if it's not obvious.
+
+Also, you definitely should write comments if bad naming or bad design is forced upon you. In that case, if your project heavily depends on that bad interface, consider writing a wrapper around it to improve it. (if you do, please release it!)
 
 
 
-#### Don't use comments to conceal bad naming or bad design you can fix
+#### Consider writing comments after the line referred to
 
-But certainly use comments to explain bad design or bad naming forced upon you. If your project heavily depends on the bad interface, you should write a wrapper around it to improve it (if you do, please release it!).
-
-
-
-#### Try to write comments after the line referred to
-
-This is just a preference, but I've really taken to writing comments after the code. I find it to be much easier to read, and much more informative. It also encourages the comments to not repeat what the code says. I now declare my structs like this:
+I've really taken to writing comments after the code. I find it to be much easier to read, and much more informative, because you know exactly what's being described. It also discourages the comments from repeating what the code says. I now declare my structs like this:
 
 ``` c
 typedef struct Alphabet {
-// An Alphabet defines an ordering of characters, such that each
-// character in the Alphabet has exactly one corresponding index.
+// An alphabet defines an ordering of characters, such that each
+// character in the alphabet has exactly one corresponding index.
 
     int size;
-    // The number of characters in this Alphabet.
+    // The number of characters in this alphabet.
 
     int ( *index_for )( char );
     // Returns the index for the given character, or -1 if that char
-    // isn't in this Alphabet. The index must be less than the
-    // Alphabet's size.
+    // isn't in this alphabet. The index must be less than the
+    // alphabet's size.
 
     char ( *char_for )( int );
     // Returns the character associated with the given index, or
-    // `Trie_ERR` if the index is invalid ( < 0 or >= size ).
+    // `Alphabet_ERR` if the index is invalid ( < 0 or >= size ).
 
 } Alphabet;
 ```
@@ -123,7 +121,9 @@ But, if the comment will refer to a multi-line block of code, I'll still put the
 
 #### Program in American English
 
-Write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `sizable`, `burned`, and so on ([see more](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences)). I'm Australian, but I appreciate that most programmers will be learning and using American English. Also, American English spelling is consistently more phonetic and consistent than British English. British English tends to evolve towards American English for this reason, I think.
+Developing in the same language, using the same spelling and vocabulary, is important. This is especially true in free-software projects with contributors from around the world.
+
+So, for American English, write `color`, `flavor`, `center`, `meter`, `neighbor`, `defense`, `routing`, `sizable`, `burned`, and so on ([see more](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences)). I'm Australian, but I appreciate that most programmers will be learning and using American English. Also, American English spelling is consistently more phonetic and consistent than British English. British English tends to evolve towards American English for this reason, I think.
 
 
 
