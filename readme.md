@@ -136,19 +136,23 @@ Namespaces are one of the great advances of software development. Unfortunately,
 #include "trie.h"       // Trie, Trie_*
 ```
 
-With something like this, you're requiring your readers to refer to documentation or use grep to get this information: that sucks. I've never seen any projects that do this, but I think it would be great if more did.
+This provides a few benefits:
 
-You can use `man <func>` to find out where a standard library function is defined, and `man stdlib.h` to get documentation on that header (to see what it defines).
+- readers aren't forced to refer to documentation or use `grep` to find out where a symbol is defined (or, if you don't follow the rule below, where it comes from): your code just tells them
+- developers have a hope of being able to determine which `#include`s can be removed and which can't
+- developers are forced to consider namespace pollution (which is otherwise ignored in most C code), and encourages them to only provide small, well-defined headers
+
+The downside is that the `#include` comments aren't checked or enforced. I've been intending to write a checker for this for quite some time, but for now, there's nothing to stop the comments from becoming wrong - either mentioning symbols that aren't used anymore, or not mentioning symbols that are used. This is annoying, but I still think `#include` comments are worth it.
+
+Finding where things come from is always one of my main challenges when learning a codebase. It could be a whole lot easier. I've never seen any projects that write `#include` comments like this, but I'd love to see it become a thing.
 
 
 
 #### `#include` the definition of everything you use
 
-Don't depend on what your headers include. If your code uses a symbol, include the header file where that symbol is defined.
+Don't depend on what your headers include. If your code uses a symbol, include the header file where that symbol is defined. Then, if your headers change their inclusions, your code won't break.
 
-This saves your readers and fellow developers from having to follow a trail of includes just to find the definition of a symbol you're using. Your code should just tell them where it comes from.
-
-It also helps to future-proof your code if a header stops including another header.
+Also, combined with the `#include` comment rule above, this saves your readers and fellow developers from having to follow a trail of includes just to find the definition of a symbol you're using. Your code should just tell them where it comes from.
 
 
 
