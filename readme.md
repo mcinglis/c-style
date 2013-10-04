@@ -7,7 +7,7 @@ These are my favorite C programming practices. Some rules are as trivial as styl
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
-Also, backwards compatibility (e.g. ANSI C) isn't a huge priority for me. In my opinion, backwards compatibility holds everyone back. I think we should use new technologies and new techniques if we can, to move everyone forward, if only a bit.
+Backwards compatibility (e.g. ANSI C) is rarely important to me. In my opinion, backwards compatibility holds everyone back. I think we should use new technologies and new techniques if we can, to move everyone forward, if only a bit.
 
 If you don't agree with something, that's perfectly fine. Pick and choose what you like, and what works for your own situation. These rules are just my preferences, and work well for what I do, and what I care about.
 
@@ -83,9 +83,9 @@ You have to use `/* ... */` in multi-line `#define`s, though:
 
 #### Don't comment what the code says, or what it could say
 
-If there's bad naming or bad design that you can fix, fix it. Don't use comments to conceal such mistakes. Keep in mind, this rule doesn't mean you shouldn't *explain* what the code says: you definitely should, if it's not obvious.
+If there's bad naming or bad design that you can fix, fix it. Don't use comments to conceal such mistakes. That said, if it's not obvious, please *explain* what the code says.
 
-Also, you definitely should write comments if bad naming or bad design is forced upon you. In that case, if your project heavily depends on that bad interface, consider writing a wrapper around it to improve it. (if you do, please release it!)
+You definitely should write comments if bad naming or bad design is forced upon you. Also, if your project heavily depends on that bad interface, consider writing a wrapper around it to improve it. (if you do, please release it!)
 
 
 
@@ -140,7 +140,7 @@ This provides a few benefits:
 - developers have a hope of being able to determine which `#include`s can be removed and which can't
 - developers are forced to consider namespace pollution (which is otherwise ignored in most C code), and encourages them to only provide small, well-defined headers
 
-The downside is that the `#include` comments aren't checked or enforced. I've been intending to write a checker for this for quite some time, but for now, there's nothing to stop the comments from becoming wrong - either mentioning symbols that aren't used anymore, or not mentioning symbols that are used. This is annoying, but I still think `#include` comments are worth it.
+The downside is that the `#include` comments aren't checked or enforced. I've been intending to write a checker for this for quite some time, but for now, there's nothing to stop the comments from becoming wrong - either mentioning symbols that aren't used anymore, or not mentioning symbols that are used. In your project, try to nip these problems in the bud, to stop it from spreading. You should always be able to trust your code.  This maintenance is annoying, for sure, but I think `#include` comments are worth it in aggregate.
 
 Finding where things come from is always one of my main challenges when learning a codebase. It could be a whole lot easier. I've never seen any projects that write `#include` comments like this, but I'd love to see it become a thing.
 
@@ -170,7 +170,9 @@ Global variables are just hidden arguments to all the functions that use them. T
 
 Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-The only circumstance where a global variable is excusable is if it's `const` and only referred to in `main`. Otherwise, you should design your functions to be controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This *always* leads to better software.
+The only circumstance where a global variable is excusable, in my opinion, is if it's `const` and only referred to in `main`. Otherwise, you should design your functions to be controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This always leads to better code and better design.
+
+For example, removing global variables and constants from my [Trie.c](https://github.com/mcinglis/trie.c) project resulted in the `Alphabet` struct, which lets users tune the storage structure to their needs. It also opened up some really cool dynamic abilities, like swapping alphabets on the fly for the same trie.
 
 Static variables in functions are just global variables scoped to that function; the arguments above apply equally to them. Just like global variables, static variables are often used as an easy way out of providing modular, pure functions. They're often defended in the name of performance (benchmarks first!). You don't need static variables, just like you don't need global variables. If you need persistent state, have the function accept that state as a argument. If you need to return something persistent, allocate memory for it.
 
