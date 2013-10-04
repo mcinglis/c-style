@@ -1,12 +1,13 @@
 # C Style
 
-This is a document of my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. Some rules I adhere to religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed and backwards-compatibility, because:
+These are my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. I follow a few rules religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed because:
 
 * [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
 * compilers are generally better at optimizing than humans, and they're only going to get better
-* backwards compatibility holds everyone back, and we should move forward if we can (if you can't, that's OK!)
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
+
+Also, backwards compatibility (e.g. ANSI C) isn't a huge priority for me. In my opinion, backwards compatibility holds everyone back. I think we should use new technologies and new techniques if we can, to move everyone forward, if only a bit.
 
 If you don't agree with something, that's perfectly fine. Pick and choose what you like, and what works for your own situation. These rules are just my preferences, and work well for what I do, and what I care about.
 
@@ -14,14 +15,11 @@ Writing this guide has made me deeply consider, and reconsider, best C programmi
 
 So, I'm certain I'm wrong on even more points. This is a constant work-in-progress; issues and pull-requests are very welcome. This guide is licensed under the [Creative Commons Attribution-ShareAlike](/license.md), so I'm not liable for anything you do with this, etc.
 
-
 ---
-
-
 
 #### Write to the most modern standard you can
 
-Always write to a *standard*, as in `-std=c11`. Don't write to a dialect, like `gnu11`. You'll thank yourself later.
+Always write to a *standard*, as in `-std=c11`. Don't write to a dialect, like `gnu11`. Try to make do without non-standard language extensions: you'll thank yourself later.
 
 
 
