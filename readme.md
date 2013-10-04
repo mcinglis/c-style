@@ -180,22 +180,21 @@ Static variables in functions are just global variables scoped to that function;
 
 #### Immutability saves lives: use `const` everywhere you can
 
-`const` improves compile-time correctness. It isn't only for documenting read-only pointers. It should be used for every read-only variable and every read-only pointee.
+`const` improves compile-time correctness. It isn't only for documenting read-only pointers. It should be used for every read-only variable and pointee.
 
 `const` helps the reader *immensely* in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air; the reader is forced to comprehend the entire scope to understand what is and isn't being modified. If you consistently use `const`, your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
 
-Using `const` everywhere you can also helps you, as a developer, reason about what's happening in the control flow of your program, and where mutability is spreading. Furthermore, it gets the compiler on your side. It's amazing, when using `const`, how much more helpful the compiler is, especially regarding pointers and pointees.
+Using `const` everywhere you can also helps you, as a developer, reason about what's happening in the control flow of your program, and where mutability is spreading. It's amazing, when using `const`, how much more helpful the compiler is, especially regarding pointers and pointees. You always want the compiler on your side.
 
-The compiler will warn if a pointee loses `const`ness in a function call (because that would let the pointee be modified), but it won't complain if a pointee gains `const`ness. Thus, if you *don't* specify your pointer arguments as `const` when they're read-only anyway, you discourage your users from using `const` in their code:
+The compiler will warn if a pointee loses `const`ness in a function call (because that would let the pointee be modified), but it won't complain if a pointee gains `const`ness. Thus, if you *don't* specify your pointer arguments as `const` when they're read-only anyway, you discourage your users from using `const` in their own code:
 
 ``` c
 // Bad: sum should define its array as const.
-int sum( int n, int * xs );
+int sum( int * xs, int n );
 
 // Because otherwise, this will be a compilation warning:
 int const xs[] = { 1, 2, 3 };
-return sum( 3, xs );
-
+return sum( xs, sizeof( xs ) );
 // => warning: passing argument 2 of ‘sum’ discards ‘const’
 //             qualifier from pointer target type
 ```
@@ -206,7 +205,7 @@ If you're forced to work with a library that ignores `const`, you can write a ma
 
 ``` c
 // `sum` will not modify the given array; casts for `const` pointers.
-#define sum( n, xs ) sum( n, ( int * ) xs )
+#define sum( xs, n ) sum( ( int * ) xs, n )
 ```
 
 Only provide `const` qualifiers for pointees in function prototypes - `const` for the argument names themselves is just an implementation detail.
@@ -218,15 +217,15 @@ bool Trie_has( Trie const, char const * const );
 bool Trie_has( Trie, char const * );
 ```
 
-Also, only make constant the pointees of struct members, not the struct members themselves. For example, if any of your struct members should be assignable to a string literal, give that member the type `char const *`. Qualifying other members with const turns all variables of that struct into a const, and that [hurts](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) more than helps.
+Also, only `const` the *pointees* of struct members, not the struct members themselves. For example, if any of your struct members should be assignable to a string literal, give that member the type `char const *`. Qualifying the members with `const` [hurts](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) more than helps. Users can just make their own variables `const` if they need that.
 
-`const` for return-type pointees also tends to harm the flexibility of your interface. It's generally best to leave `const` to the declarations. Think carefully when making return types `const`.
+I generally only make return-type pointees `const` if I need to, and after careful consideration. This can harm the flexibility of your interface, so watch out.
 
-Finally, never use typecasts or pointers to get around `const` qualifiers. If the variable isn't constant, don't make it one, or if the variable is constant, apply qualifiers as needed.
+Finally, never use typecasts or pointers to get around `const` qualifiers. If the variable isn't constant, don't make it one.
 
 
 
-#### Always put `const` on the right, like `*`, and read types right-to-left
+#### Always put `const` on the right and read types right-to-left
 
 ``` c
 const char * word;              // Bad: not as const-y as it can be
@@ -256,7 +255,7 @@ Space isn't an issue anymore, but floating-point errors still are. It's much har
 
 #### Declare variables when they're needed
 
-This reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than declaration (`int x;`). Initializing a variable usually means you can `const` it, too.
+This reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than just declaration (`int x;`). Initializing a variable usually often means you can `const` it, too.
 
 To me, all declarations are shifty.
 
@@ -305,13 +304,13 @@ Explicit comparisons tell the reader what they're working with, because it's not
 ``` c
 // Bad - what are these expressions actually testing for (if at all?)
 if ( on_fire );
-while ( kittens );
+while ( !at_work );
 something( first );
 return !address;
 
 // Good - informative, and eliminates ambiguity
-if ( on_fire == true );
-while ( kittens != 0 );
+if ( on_fire > 0 );
+while ( at_work == false );
 something( first != '\0' );
 return address == NULL;
 ```
@@ -339,20 +338,23 @@ if ( x == 0 );
 // Fine (technically an assignment within an expression)
 a = b = c;
 
-// Fine - there's no better way.
-int x;
-while ( x = action(), test( x ) == false ) {
-    do_something( x );
+// Fine
+int w;
+while ( w = calc_width( shape ),
+        valid_width( w ) == false ) {
+    reshape( shape, w );
 }
 ```
 
-But don't use multiple assignment unless the variable's values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
+But don't use multiple assignment unless the variables' values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
 
 
 
-#### Avoid non-trivial function calls in expressions
+#### Avoid non-pure or non-trivial function calls in expressions
 
-Assign function calls to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value). This avoids surprising your readers with hidden state changes. Even if you think it's obvious, and it will save you a line - it's not worth the potential for a slip-up. Stick to this rule, and don't think about it.
+Assign function calls to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value). This avoids surprising your readers with hidden state changes from non-pure functions. To me, it's really unnatural to think about the expression inside an `if ( ... )` changing things on the outside world. It's much clear to assign the result of that state change to a variable, and then check that value.
+
+Even if you think it's obvious, and it will save you a line - it's not worth the potential for a slip-up. Stick to this rule, and don't think about it.
 
 The only exception is if the function name is short and reads naturally where it will be placed. For example, if the function name is a predicate, like `is_adult` or `in_tree`, then it will read naturally in an `if` expression. It's also probably fine to join these kind of functions in a boolean expression if you need to, but use your judgement. Complex boolean expressions should often be extracted to a function.
 
