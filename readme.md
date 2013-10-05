@@ -9,7 +9,7 @@ These are my favorite C programming practices. Some rules are as trivial as styl
 
 Backwards compatibility (e.g. ANSI C) is rarely important to me. In my opinion, backwards compatibility holds everyone back. I think we should use new technologies and new techniques if we can, to move everyone forward, if only a bit.
 
-If you don't agree with something, that's perfectly fine. Pick and choose what you like, and what works for your own situation. These rules are just my preferences, and work well for what I do, and what I care about.
+If you don't agree with something here, that's perfectly fine. Pick and choose what you like, and what works for your own situation. These rules aren't intended to be universal admonitions about quality: they're just my preferences, and work well for what I do, and what I care about.
 
 Writing this guide has made me deeply consider, and reconsider, best C programming practices. I've changed my opinion multiple times on many of the rules in this document.
 
@@ -29,7 +29,7 @@ The idea of tabs was that we'd use tabs for indentation levels, and spaces for a
 
 ``` c
 int main( void ) {
-|tab   |if ( pigs_can_fly() ) {
+|tab   |if ( pigs_can_fly() == true ) {
 |tab   ||tab   |developers_can_use_tabs( "and align columns "
 |tab   ||tab   |                         "with spaces!" );
 |tab   |}
@@ -50,7 +50,7 @@ Cut the complexity, and use spaces everywhere. You may have to adjust to someone
 
 Sticking to 80 characters lets us size our editor windows to that size, and fit more on the screen. If you go over 80 characters, you're adding an extra burden on your readers. It's a real pain for me, having to move the cursor to scroll the window right.
 
-Furthermore, 80 characters provides a nice column size that's easy to read, because the beginning and ends of a line are much closer, so your eye travels better. 100 and 120 character width-columns provide a much harder gap to jump.
+Furthermore, 80 characters provides a nice column size that's easy to read, because the beginning and ends of a line are much closer, so your eye travels better.
 
 Treat 80 characters as a hard limit: no ifs or buts.
 
