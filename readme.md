@@ -537,22 +537,23 @@ setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
 
 
 
-#### Avoid macros that hide things
+#### Never use or provide macros that wrap control structures like `for`
 
-C can only get you so far. The preprocessor is how you meta-program C. Too many developers don't know about the [advanced features of the preprocessor](https://en.wikibooks.org/wiki/C_Programming/Preprocessor#.23define), like symbol stringification (`#`) and concatenation (`##`). I sometimes define macros to make the users' life easier. They don't have to use the macro if they don't want to, but users who do will probably appreciate it.
+You *can* use macros to make it easier to, e.g., loop over the elements of a data structure. However, this will be confusing for everyone reading it. To understand your program, it's crucial that your readers can understand its control flow. A macro does not enable that.
+
+Also, don't provide control-macros even as an option. They're universally harmful, so don't enable it. Users can define their own if they really want to.
 
 ``` c
-// Good - what harm does it do?
+// Bad
 #define Trie_EACH( trie, index ) \
     for ( int index = 0; index < trie.alphabet.size; index += 1 )
 
+// Not at all obvious what's actually going to happen here.
 Trie_EACH( trie, i ) {
     Trie * const child = trie.children[ i ];
     ...
 }
 ```
-
-When you provide something like this, document what it's doing under the surface. In your documentation, encourage your users to go without the macro if they prefer. Your interfaces should be usable without macros.
 
 
 
@@ -560,11 +561,11 @@ When you provide something like this, document what it's doing under the surface
 
 By "act differently", I mean if things will break when users wouldn't expect them to. If a macro just looks different (e.g. the named arguments technique), then I don't consider that justification for an upper-case name. A macro should have an upper-case name if it:
 
-- repeats its arguments in its body, because this will break for non-pure expressions. Many compilers provide [statement expressions](http://stackoverflow.com/questions/6440021/compiler-support-of-gnu-statement-expression) to prevent this, but it's non-standard. If you do use statement expressions, you don't need to upper-case your macro name, because it's not relevant to your users.
+- repeats its arguments in its body, because this will break for non-pure expressions. Many compilers provide [statement expressions](http://stackoverflow.com/questions/6440021/compiler-support-of-gnu-statement-expression) to prevent this, but it's non-standard. If you do use statement expressions, then you don't need to upper-case your macro name, because it's not relevant to your users.
 - modifies the calling context, e.g., with a `return` or `goto`.
 - takes an array literal as a named argument. ([why](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument))
 
-Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`.
+Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`. I try to limit my SHOUTING in my code.
 
 
 
@@ -655,13 +656,13 @@ void Country_fire_ze_missiles( Country const country ) {
 }
 ```
 
-The other case to use pointer arguments is if the function *needs* nullity (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, use const to signal that the pointer is not for modification, and add a `maybe` prefix to such variables to signal that the function should account for `NULL`.
+The other case to use pointer arguments is if the function *needs* nullity (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, use const to signal that the pointer is not for modification.
 
 ``` c
 // Good: `NULL` represents an empty list, and list is a pointer-to-const
-int List_length( List const * maybe_list ) {
+int List_length( List const * list ) {
     int length = 0;
-    for ( ; maybe_list != NULL; list = list->next ) {
+    for ( ; list != NULL; list = list->next ) {
         length += 1;
     }
     return length;
@@ -669,12 +670,6 @@ int List_length( List const * maybe_list ) {
 ```
 
 If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. Furthermore, when your readers see a dereference in a call to a function, they can be totally certain that it won't be changed by that function (when you can't make the pointee constant).
-
-
-
-#### If a function returns a pointer for nullity, put a `maybe` in its name
-
-If a function returns a pointer so it can return `NULL` as a sentinel value, it can help to put a `maybe` in the function's name to signal to callers that they need to account for a `NULL` return value. This mimics the `Maybe` typeclass in Haskell (which is appearing in other languages now too).
 
 
 
