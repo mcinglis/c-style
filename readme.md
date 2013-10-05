@@ -1,9 +1,6 @@
 # C Style
 
-These are my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. I follow a few rules religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed because:
-
-* [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization)
-* compilers are generally better at optimizing than humans, and they're only going to get better
+These are my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. I follow a few rules religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed because [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization).
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
 
@@ -39,7 +36,7 @@ int main( void ) {
 But, alas, we (and our editors) rarely get it right. There are three main problems posed by using tabs and spaces:
 
 - It's harder to align things using only the space bar. It's much easier to hit tab twice than to hold the space bar for eight characters. A developer on your project *will* make this mistake eventually.
-- Tabs for indentation lead to inconsistencies between opinions on line lengths. Someone who uses a tab width of 8 will hit 80 characters much sooner than someone who uses a tab width of 2. The only way to avoid this is to dictate a tab-width, which eliminates the benefit of tabs.
+- Tabs for indentation lead to inconsistencies between opinions on line lengths. Someone who uses a tab width of 8 will hit 80 characters much sooner than someone who uses a tab width of 2. The only way to avoid this is to require a tab-width, which eliminates the benefit of tabs.
 - It's easier to automatically protect against the presence of tabs in source code, than to protect against tabs used for alignment.
 
 Cut the complexity, and use spaces everywhere. You may have to adjust to someone else's indent width every now and then. Tough luck!
@@ -297,23 +294,25 @@ int print_steps = 0;             // Bad - is this counting steps?
 
 
 
-#### Use explicit comparisons instead of relying on truthiness
+#### Explicitly compare values; don't rely on truthiness
 
-Explicit comparisons tell the reader what they're working with, because it's not always obvious in C. Are we working with counts or characters or booleans or pointers?
+Explicit comparisons tell the reader what they're working with, because it's not always obvious in C, and it *is* always important. Are we working with counts or characters or booleans or pointers? The first thing I do when I see a variable being tested for truthiness in C is to hunt down the declaration to find its type. I really wish the programmer had just told me in the comparison.
 
 ``` c
 // Bad - what are these expressions actually testing for (if at all?)
 if ( on_fire );
 while ( !at_work );
 something( first );
-return !address;
+return !character;
 
 // Good - informative, and eliminates ambiguity
 if ( on_fire > 0 );
 while ( at_work == false );
 something( first != '\0' );
-return address == NULL;
+return character == NULL;
 ```
+
+I'll often skip this rule for boolean functions named as a predicate, like `is_edible` or `has_client`. It's still not *completely* obvious what the conditional is checking for, but I consider the visual clutter of a `== true` or `== false` to be more of a hassle than a help to readers in this situation.
 
 
 
@@ -335,28 +334,43 @@ if ( ( x = calc() ) == 0 );
 x = calc();
 if ( x == 0 );
 
-// Fine (technically an assignment within an expression)
+// Fine; technically an assignment within an expression
 a = b = c;
 
-// Fine
+// Fine; there's no better way, without repetition
 int w;
 while ( w = calc_width( shape ),
-        valid_width( w ) == false ) {
-    reshape( shape, w );
+        !valid_width( w ) ) {
+    shape = reshape( shape, w );
 }
 ```
 
-But don't use multiple assignment unless the variables' values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
+Don't use multiple assignment unless the variables' values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
+
+But, use the comma operator, as above, judiciously. If you can do without it, do:
+
+``` c
+// Bad
+for ( int i = 0, bounds = get_bounds( m ); i < bounds; i += 1 ) {
+    ...
+}
+
+// Better
+int bounds = get_bounds( m );
+for ( int i = 0; i < bounds; i += 1 ) {
+    ...
+}
+```
 
 
 
 #### Avoid non-pure or non-trivial function calls in expressions
 
-Assign function calls to a variable to describe what it is, even if the variable is as simple as an `int rv` (return value). This avoids surprising your readers with hidden state changes from non-pure functions. To me, it's really unnatural to think about the expression inside an `if ( ... )` changing things on the outside world. It's much clear to assign the result of that state change to a variable, and then check that value.
+Assign function calls to a variable to describe what it is, even if the variable is as simple as an `int result`. This avoids surprising your readers with state changes from non-pure functions hidden inside conditional contexts. To me, it's really unnatural to think about the expression inside an `if ( ... )` changing things on the outside world. It's much clear to assign the result of that state change to a variable, and then check that value.
 
 Even if you think it's obvious, and it will save you a line - it's not worth the potential for a slip-up. Stick to this rule, and don't think about it.
 
-The only exception is if the function name is short and reads naturally where it will be placed. For example, if the function name is a predicate, like `is_adult` or `in_tree`, then it will read naturally in an `if` expression. It's also probably fine to join these kind of functions in a boolean expression if you need to, but use your judgement. Complex boolean expressions should often be extracted to a function.
+If the function name is a predicate, like `is_adult` or `in_tree`, and will read naturally in a conditional context, then I think it's alright to skip assigning its result. It's also probably fine to join these kind of functions in a boolean expression if you need to, but use your judgement. Complex boolean expressions should often be extracted to a function.
 
 ``` c
 // Good
@@ -367,7 +381,7 @@ if ( rv == -1 ) {
 }
 
 // Good
-if ( is_tasty( banana ) == true ) {
+if ( is_tasty( banana ) ) {
     eat( banana );
 }
 ```
@@ -434,7 +448,6 @@ You can and should make exceptions for commonly-seen combinations of operations.
 return hungry == true
        || ( legs != NULL && fridge.empty == false );
 ```
-
 
 
 
