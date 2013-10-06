@@ -16,6 +16,8 @@ So, I'm certain I'm wrong on even more points. This is a constant work-in-progre
 
 #### Write to the most modern standard you can
 
+C11 is better than C99, which is (far) better than C89. C11 support is still coming along in GCC and Clang, but many features are there. If you need to support other compilers in the medium-term, write to C99.
+
 Always write to a *standard*, as in `-std=c11`. Don't write to a dialect, like `gnu11`. Try to make do without non-standard language extensions: you'll thank yourself later.
 
 
@@ -45,7 +47,7 @@ Cut the complexity, and use spaces everywhere. You may have to adjust to someone
 
 #### 80 characters is a hard limit
 
-Sticking to 80 characters lets us size our editor windows to that size, and fit more on the screen. If you go over 80 characters, you're adding an extra burden on your readers. It's a real pain for me, having to move the cursor to scroll the window right.
+Sticking to 80 characters lets us size our editor windows to that size, and fit more on the screen - whether it be a browser, another editor, or whatever. If you go over 80 characters, you're adding an extra burden on your readers who take advantage of the 80 character standard. Either your line will wrap, which is hard to read, or your readers will have to scroll the window to the right to get the last few characters.
 
 Furthermore, 80 characters provides a nice column size that's easy to read, because the beginning and ends of a line are much closer, so your eye travels better.
 
@@ -74,21 +76,9 @@ You have to use `/* ... */` in multi-line `#define`s, though:
 
 
 
-#### Write comments in full sentences, without abbreviations
+#### Consider writing header comments after the line referred to
 
-
-
-#### Don't comment what the code says, or what it could say
-
-If there's bad naming or bad design that you can fix, fix it. Don't use comments to conceal such mistakes. That said, if it's not obvious, please *explain* what the code says.
-
-You definitely should write comments if bad naming or bad design is forced upon you. Also, if your project heavily depends on that bad interface, consider writing a wrapper around it to improve it. (if you do, please release it!)
-
-
-
-#### Consider writing comments after the line referred to
-
-I've really taken to writing comments after the code. I find it to be much easier to read, and much more informative, because you know exactly what's being described. It also discourages the comments from repeating what the code says. I now declare my structs like this:
+I've really taken to writing comments in headers after the line referred to. I find it to be much easier to read, and much more informative, because you know exactly what's being described. It also discourages the comments from repeating what the code says. For example, I now declare my structs like this:
 
 ``` c
 typedef struct Alphabet {
@@ -109,8 +99,6 @@ typedef struct Alphabet {
 
 } Alphabet;
 ```
-
-But, if the comment will refer to a multi-line block of code, I'll still put the comment at the top.
 
 
 
@@ -205,11 +193,11 @@ Static variables in functions are just global variables scoped to that function;
 
 
 
-#### Minimize what you expose; declare functions `static` where you can
+#### Minimize what you expose; declare top-level names `static` where you can
 
 Your header files should *only* include things that users need to use your library. Internal functions or structs or macros should not be provided here; declare them in their respective source files. If it's needed among multiple source files, provide an internal header file.
 
-If a function isn't exported in the header, declare it as `static` in the source file to give it internal linkage. This eliminates the chance of name-clashes among object files, enables a few optimizations, and can improve the linking speed.
+If a function or global variable isn't exported in the header, declare it as `static` in the source file to give it internal linkage. This eliminates the chance of name-clashes among object files, enables a few optimizations, and can improve the linking speed.
 
 
 
@@ -677,9 +665,9 @@ char xs[] = "hello";
 xs[ 0 ] = 'c';
 ```
 
-The benefit of initializing string literals as pointers is that those pointers will point to read-only memory, potentially preventing some optimizations. Initializing string literals as arrays essentially creates a mutable string that can only be "artificially" protected against modifications with `const` - but this can be defeated with a cast.
+The benefit of initializing string literals as pointers is that those pointers will point to read-only memory, potentially allowing some optimizations. Initializing string literals as arrays essentially creates a mutable string that can only be "artificially" protected against modifications with `const` - but this can be defeated with a cast.
 
-Again, I advise against prematurely optimizing. Until you've finished development and have done benchmarks, performance should be your lowest priority. I haven't seen any tests of this, but I'd be very surprised to see any noticeable speed improvements by defining string literals as pointers.
+Again, I advise against prematurely optimizing. Until you've finished development and have done benchmarks, performance should be your lowest priority. I haven't seen any tests on string literal definitions, but I'd be very surprised to see any noticeable speed improvements by defining string literals as pointers.
 
 As mentioned in the rule on `const`ing everything: never ever cast away a `const`. Remove the `const` instead. Don't worry about "artificial" protections. I know I'd much prefer my constant values to be protected by explicit, syntactic constructs that will warn when compiling, rather than implicit, obscure rules that will seg-fault when violated.
 
@@ -709,7 +697,7 @@ setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
 
 [Arrays become pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as arguments to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can never receive an array as a argument: [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array argument declaration would suggest: it would return the size of the pointer, not the array pointed to.
 
-[Static array indices in function arguments are nice](http://hamberg.no/erlend/posts/2013-02-18-static-array-indices.html), but only protect against very trivial situations, like when given literal `NULL`. Also, GCC doesn't warn about their violation [yet](http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50584), only Clang. I don't consider the confusing, non-obvious syntax to be worth the small compilation check.
+[Static array indices in function arguments are nice](http://hamberg.no/erlend/posts/2013-02-18-static-array-indices.html), but only protect against very trivial situations, like when given a literal `NULL`. Also, GCC doesn't warn about their violation [yet](http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50584), only Clang. I don't consider the confusing, non-obvious syntax to be worth the small compilation check.
 
 Yeah, `[]` hints that the argument will be treated as an array, but so does a plural name like `requests`, so do that instead.
 
@@ -764,7 +752,7 @@ Repeating your `assert` calls improves the assertion error reporting. If you cha
 
 Variable-length arrays were introduced in C99 as a way to define dynamic-length arrays with automatic storage; no need for `malloc`. For a few reasons, they've been made optional in C11. Thus, if you want to use variable-length arrays in C11, you'll have to write to write the `malloc` version anyway. Instead, just don't use variable-length arrays.
 
-I'd advise against using variable-length arrays in C99, too. You have to [check the values](https://www.securecoding.cert.org/confluence/display/seccode/ARR32-C.+Ensure+size+arguments+for+variable+length+arrays+are+in+a+valid+range) that control their size to protect against stack-smashing, they can't be initialized, and it'll make it easier to upgrade to newer standards later on.
+I'd advise against using variable-length arrays in C99, too. You have to [check the values](https://www.securecoding.cert.org/confluence/display/seccode/ARR32-C.+Ensure+size+arguments+for+variable+length+arrays+are+in+a+valid+range) that control their size to protect against stack-smashing. Also, they can't be initialized. Finally, avoiding them will make it easier to upgrade to newer standards later on.
 
 
 
@@ -831,7 +819,7 @@ Pointer typedefs are particularly nefarious because they exclude the users from 
 
 
 
-#### Give enums `UPPERCASE_SNAKE_NAMES`, and lowercase their values
+#### Give enums `UPPERCASE_SNAKE` names, and lowercase their values
 
 Because enums are mostly just integer constants, it's natural to name them the same way as `#define`d constants. The `enum` type prefix will communicate that it expects an enum value, and the lowercase value suffixes will communicate that they aren't quite integer constants.
 
@@ -846,7 +834,7 @@ enum JSON_TYPE {
 
 
 
-#### Never end your names with `_` or `_t`: they're reserved for standards
+#### Never begin names with `_` or end them with `_t`: they're reserved for standards
 
 [Here's a list](https://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html) of the names reserved by future ISO C standards. `types_like_this_t` and `_anything` are identifiers that are reserved by future standards of C, so don't use them for your own identifiers.
 
@@ -1089,13 +1077,14 @@ dependencies = $(objects:.o=.d)
 
 #### Always develop and compile with all warnings (and more) on
 
-No excuses here. Always develop and compile with warnings on. It turns out, though, that `-Wall` and `-Wextra` actually don't enable "all" warnings. There are a few others that can actually be really helpful:
+No excuses here. Always develop and compile with warnings on. It turns out, though, that `-Wall` and `-Wextra` actually don't enable "all" warnings. There are a few others that can be really helpful:
 
 ``` make
 CFLAGS += -Wall -Wextra -Wpedantic \
-          -Wformat=2 -Wunused -Wno-unused-parameter -Wshadow \
+          -Wformat=2 -Wno-unused-parameter -Wshadow \
           -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
-          -Wredundant-decls -Wnested-externs
+          -Wredundant-decls -Wnested-externs -Wswitch-default \
+          -Wmissing-include-dirs
 
 # GCC warnings that Clang doesn't provide:
 ifeq ($(CC),gcc)
