@@ -174,7 +174,7 @@ This probably goes without saying for most C programmers, but I figured I should
 
 ...
 
-#endif // ifndef INCLUDED_ALPHABET_H
+#endif // INCLUDED_ALPHABET_H
 ```
 
 [Rob Pike argues against include guards](http://www.lysator.liu.se/c/pikestyle.html), saying you should just never include files in include files. He says that include guards still "result in thousands of needless lines of code passing through the lexical analyzer".
@@ -184,6 +184,10 @@ In fact, [GCC will detect include guards](http://gcc.gnu.org/onlinedocs/cppinter
 I don't think it's a good idea to require your users include the dependencies of their header files. Your header file's dependencies shouldn't really be considered "public". It would enforce the rule "don't depend on what your header files include", but it falls apart as soon as header files are using things you don't need, like `FILE` or `bool`. Users shouldn't have to care about that.
 
 So, always write include guards, and make your users' lives easy.
+
+
+
+#### Always comment `#endif`s of large conditional sections
 
 
 
