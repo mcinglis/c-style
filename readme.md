@@ -680,26 +680,11 @@ Repeating your `assert` calls improves the assertion error reporting. If you cha
 
 
 
-#### Use variable-length arrays rather than allocating manual memory
+#### Don't use variable-length arrays
 
-<!-- TODO -->
+Variable-length arrays were introduced in C99 as a way to define dynamic-length arrays with automatic storage; no need for `malloc`. For a few reasons, they've been made optional in C11. Thus, if you want to use variable-length arrays in C11, you'll have to write to write the `malloc` version anyway. Instead, just don't use variable-length arrays.
 
-Since C99, arrays can now be allocated to have a length determined at runtime. Unfortunately, variable-length arrays can't be initialized.
-
-``` c
-const int num_threads = atoi( argv[ 1 ] );
-
-// Bad
-pthread_t * const threads = calloc( num_threads * sizeof pthread_t );
-...
-free( threads );
-
-// Good (though memory isn't zeroed, so be careful)
-pthread_t threads[ num_threads ];
-// The memory is released when the scope ends.
-```
-
-As mentioned in the rule on zeroing declared variables, variable-length arrays can't be initialized, so I'll usually only zero a variable-length array if it's defined in a large scope, or will be passed to other scopes.
+I'd advise against using variable-length arrays in C99, too. You have to [check the values](https://www.securecoding.cert.org/confluence/display/seccode/ARR32-C.+Ensure+size+arguments+for+variable+length+arrays+are+in+a+valid+range) that control their size to protect against stack-smashing, they can't be initialized, and it'll make it easier to upgrade to newer standards later on.
 
 
 
@@ -964,14 +949,6 @@ As it turns out, C already has an entirely-capable language model. In C, we defi
 Haskell, at the forefront of language design, made the same decision to separate data and functionality. Learning Haskell is one of the best things a programmer can do to improve their technique, but I think it's especially beneficial for C programmers, because of the underlying similarities between C and Haskell. Yes, C doesn't have anonymous functions, and no, you won't be writing monads in C anytime soon. But by learning Haskell, you'll learn how to write good software without classes, without mutability, and with modularity. These qualities are very beneficial for C programming.
 
 Embrace and appreciate what C offers, rather than attempting to graft other paradigms onto it.
-
-
-
-#### Always use `calloc` instead of `malloc`
-
-<!-- TODO -->
-
-Use `calloc` because undefined memory is dangerous. Computers are so much faster, and compilers are so much better, and `malloc` is just something we don't need anymore. Always use `calloc` and stop caring about the difference - at least, until you've finished development, and have done benchmarks.
 
 
 
