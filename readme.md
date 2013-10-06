@@ -649,6 +649,12 @@ Then, if you change the type of the variable later, you only have to change it o
 int * a = malloc( n * sizeof( *a ) );
 ```
 
+You can't do this with compound literals, though. I think it's a worth-while trade-off to remove a variable that's only used once.
+
+``` c
+setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &( int ){ 1 }, sizeof( int ) );
+```
+
 
 #### Never use array syntax for function arguments definitions
 
