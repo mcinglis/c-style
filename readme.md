@@ -177,6 +177,8 @@ Static variables in functions are just global variables scoped to that function;
 
 #### Minimize what you expose; declare functions `static` where you can
 
+Your header files should *only* include things that users need to use your library. Internal functions or structs or macros should not be provided here; declare them in their respective source files. If it's needed among multiple source files, provide an internal header file.
+
 If a function isn't exported in the header, declare it as `static` in the source file to give it internal linkage. This eliminates the chance of name-clashes among object files, enables a few optimizations, and can improve the linking speed.
 
 
@@ -782,11 +784,13 @@ Pointer typedefs are particularly nefarious because they exclude the users from 
 
 
 
-#### Never end your names with `_` or `_t`; they're reserved for standards
+#### Never end your names with `_` or `_t`: they're reserved for standards
 
-[Here's a list](https://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html) of the names reserved by future ISO C standards.
+[Here's a list](https://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html) of the names reserved by future ISO C standards. `types_like_this_t` and `_anything` are identifiers that are reserved by future standards of C, so don't use them for your own identifiers.
 
-[It's](https://github.com/facebook/libphenom) [not](https://github.com/joyent/libuv) [hard](https://github.com/liuliu/ccv) to find popular C libraries and projects that make this mistake. It happens way too often. Don't make the same mistake in your library!
+These kinds of names *could've* provided a nice way to tell which types are part of the language standard and which types are provided by libraries. Unfortunately, [it's](https://github.com/facebook/libphenom) [not](https://github.com/joyent/libuv) [hard](https://github.com/liuliu/ccv) to find popular C libraries and projects that make this mistake, which dilutes the helpfulness of such a rule.
+
+This mistake is made way too often: don't make the same mistake in your library!
 
 
 
