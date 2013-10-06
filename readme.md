@@ -175,6 +175,12 @@ Static variables in functions are just global variables scoped to that function;
 
 
 
+#### Minimize what you expose; use `static` where you can
+
+If a function isn't exported in the header, declare it as `static` in the source file to give it internal linkage. This lowers the chance of name-clashes 
+
+
+
 #### Immutability saves lives: use `const` everywhere you can
 
 `const` improves compile-time correctness. It isn't only for documenting read-only pointers. It should be used for every read-only variable and pointee.
@@ -634,71 +640,6 @@ Just always initialize string literals as arrays, and keep it simple.
 
 
 
-#### Pointer arguments only for public modifications, or for nullity
-
-In C, you can pass struct values to functions, and by [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), they'll be copied into the frame of the receiving function. The original struct can't be modified by that function (although it can return the modification). Like `const`, using this feature wherever you can makes it easier for your readers to reason about your program.
-
-When you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. This is in stark contrast to projects that pass pointers everywhere: you have no certainty anywhere.
-
-Defining a *modification* is tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the value's public state. This depends on common-decency of users of the interface to respect visibility comments.
-
-So, if a struct will be "modified" by a function, have that function accept a pointer of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which structs have pointer members.
-
-``` c
-typedef struct {
-    int population;
-} State;
-
-typedef struct {
-    bool fired;
-} Missile;
-
-typedef struct {
-    State * states;
-    int num_states;
-    // private
-    Missile * missiles;
-    int num_missiles;
-} Country;
-
-// Good: takes a `Country *` even though it doesn't need to, because
-// this will change the public state of `country`.
-void Country_grow( Country const * const country, double const percent ) {
-    for ( int i = 0; i < country->num_states; i += 1 ) {
-        country->states[ i ].population *= percent;
-    }
-}
-```
-
-In the above example, although `missiles` is a "private" member, if there are any public `Country_` functions whose result (or side-effects) is affected by the values of the pointees of `missiles`, then changes to those pointees should be considered as affecting the public state of a `Country` object. Assuming there aren't any such functions, then no one needs to be told about changes to `missiles`.
-
-``` c
-// If there are no public methods affected by `missiles`, then this is
-// fine, because it doesn't change any public state of `country`.
-void Country_fire_ze_missiles( Country const country ) {
-    for ( int i = 0; i < country.num_missiles; i += 1 ) {
-        country.missiles[ i ].fired = true;
-    }
-}
-```
-
-The other situation to use pointer arguments is if the function *needs* nullity (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, be sure use `const` to signal that the pointer is not for modification, and so it can accept `const` arguments.
-
-``` c
-// Good: `NULL` represents an empty list, and list is a pointer-to-const
-int List_length( List const * list ) {
-    int length = 0;
-    for ( ; list != NULL; list = list->next ) {
-        length += 1;
-    }
-    return length;
-}
-```
-
-Sticking to this rule means ditching incomplete struct types, but I don't really like them anyway (see the "C isn't object-oriented" rule).
-
-
-
 #### Never use array syntax for function arguments definitions
 
 [Arrays become pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as arguments to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can never receive an array as a argument: [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array argument declaration would suggest: it would return the size of the pointer, not the array pointed to.
@@ -740,6 +681,8 @@ Repeating your `assert` calls improves the assertion error reporting. If you cha
 
 
 #### Use variable-length arrays rather than allocating manual memory
+
+<!-- TODO -->
 
 Since C99, arrays can now be allocated to have a length determined at runtime. Unfortunately, variable-length arrays can't be initialized.
 
@@ -812,15 +755,13 @@ typedef void * gpointer;
 
 This mistake is committed by way too many codebases. It masks what's really going on, and you have to read documentation or find the `typedef` to learn how to work with it. Never do this in your own interfaces, and try to ignore the typedefs in other interfaces.
 
-Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
+These criticisms apply equally to struct typedefs, as advised above. In my opinion, the visual clarity achieved by removing all the `struct` declarations is worth requiring users be aware of (or realize) the convention. Also, having a consistent naming scheme for structs, with TitleCase names, helps recognizability.
 
-Even if you intend to be consistent about it, so that all title-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and arguments that will be modified (and losing the benefits of that).
-
-These criticisms apply equally to all typedefs - including for structs, as advised above. In my opinion, the visual clarity achieved by removing all the `struct` declarations is worth requiring users be aware of (or realize) the convention. Also, having a consistent naming scheme for structs, with TitleCase names, can help recognizability.
+Pointer typedefs are particularly nefarious because they exclude the users from qualifying the pointee with `const`. This is a huge loss, for reasons enumerated in other rules.
 
 
 
-#### Only use pointers in structs for nullity, dynamic arrays or self-references
+#### Only use pointers in structs for nullity, dynamic arrays or incomplete types
 
 Every pointer in a struct is an opportunity for a segmentation fault.
 
@@ -828,13 +769,62 @@ If the would-be pointer shouldn't be NULL, isn't an array of an unknown size, an
 
 
 
-#### Always prefer to return a value rather than modifying pointers
+#### Only take pointer arguments for modifications, or for nullity
 
-This encourages immutability, cultivates [pure functions](https://en.wikipedia.org/wiki/Pure_function), and makes things simpler and easier to understand.
+This rule helps readers reason about where values are being modified. It also improves the safety by making it impossible for functions that shouldn't receive `NULL` from receiving `NULL` -- this is a huge benefit over languages that require pass-by-reference semantics (and thus `NULL` as a valid value almost everywhere).
+
+When you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. This is in stark contrast to projects that pass pointers everywhere: you have no certainty anywhere.
+
+In C, you can pass struct values to functions, and by [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), they'll be copied into the frame of the receiving function. The original struct can't be modified by that function (although it can return the modification). Like `const`, using this feature wherever you can makes it easier for your readers to reason about your program.
+
+Defining a "modification" gets tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the struct itself, or the pointees of the struct.
+
+If a struct will be "modified" by a function, have that function accept a pointer of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which structs have pointer members.
 
 ``` c
-// Bad: unnecessary mutation (probably)
+typedef struct {
+    int population;
+} State;
+
+typedef struct {
+    State * states;
+    int num_states;
+} Country;
+
+// Good: takes a `Country *` even though it *could* modify the array
+// pointed to by the `states` member with just a `Country` value.
+void Country_grow( Country const * const country, double const percent ) {
+    for ( int i = 0; i < country->num_states; i += 1 ) {
+        country->states[ i ].population *= percent;
+    }
+}
+```
+
+The other situation to use pointer arguments is if the function needs to accept `NULL` as a valid value (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, be sure use `const` to signal that the pointer is not for modification, and so it can accept `const` arguments.
+
+``` c
+// Good: `NULL` represents an empty list, and list is a pointer-to-const
+int List_length( List const * list ) {
+    int length = 0;
+    for ( ; list != NULL; list = list->next ) {
+        length += 1;
+    }
+    return length;
+}
+```
+
+Sticking to this rule means ditching incomplete struct types, but I don't really like them anyway. (see the "[C isn't object-oriented](#c-isnt-object-oriented-and-you-shouldnt-pretend-it-is)" rule)
+
+
+
+#### Always prefer to return a value rather than modifying pointers
+
+This encourages immutability, cultivates [pure functions](https://en.wikipedia.org/wiki/Pure_function), and makes things simpler and easier to understand. It also improves safety by eliminating the possibility of a `NULL` argument.
+
+``` c
+// Bad: unnecessary mutation (probably), and unsafe
 void Drink_mix( Drink * const drink, Ingredient const ingr ) {
+    assert( drink != NULL );
     Color_blend( &( drink->color ), ingr.color );
     drink->alcohol += ingr.alcohol;
 }
@@ -850,19 +840,7 @@ Drink Drink_mix( Drink const drink, Ingredient const ingr ) {
 
 
 
-#### Always use designated initializers in struct literals
-
-``` c
-// Bad - will break if struct members are reordered, and it's not
-// always clear what the values represent.
-Fruit apple = { "red", "medium" };
-// Good; future-proof and descriptive
-Fruit watermelon = { .color = "green", .size = "large" };
-```
-
-
-
-#### Use structs to provide named function arguments for optional arguments
+#### Use structs to name functions' optional arguments
 
 ``` c
 struct run_server_options {
@@ -889,7 +867,7 @@ int main( void )
 }
 ```
 
-I learnt this from *21st Century C*. So many C interfaces could be improved immensely if they took advantage of this technique. The importance and value of (syntactic) named arguments is often understated in software development. If you're not convinced, read Bret Victor's [Learnable Programming](http://worrydream.com/LearnableProgramming/).
+I learnt this from *21st Century C*. So many C interfaces could be improved immensely if they took advantage of this technique. The importance and value of (syntactic) named arguments is all-too-often overlooked in software development. If you're not convinced, read Bret Victor's [Learnable Programming](http://worrydream.com/LearnableProgramming/).
 
 Back to C: you can define a macro to make it easier to define functions with named arguments.
 
@@ -902,13 +880,25 @@ Book_new( ( Author ){ .name = "Dennis Ritchie" } );
 
 
 
+#### Always use designated initializers in struct literals
+
+``` c
+// Bad - will break if struct members are reordered, and it's not
+// always clear what the values represent.
+Fruit apple = { "red", "medium" };
+// Good; future-proof and descriptive
+Fruit watermelon = { .color = "green", .size = "large" };
+```
+
+
+
 #### Prefer `_new()` functions with named arguments to struct literals
 
 Providing `_new()` functions to users gives you more flexibility later on. When a "required" member is added to a struct, all previous `_new()` calls will become errors, whereas struct literals without that required member will still compile:
 
 ``` c
-// Suppose we add a required `age` field to the `Character` struct,
-// and update the `_new()` function accordingly.
+// Suppose we add a required (i.e. non-null) `age` field to the
+// `Character` struct, and update the `_new()` function accordingly.
 
 Character Character__new( char * name, int age, Character options );
 
@@ -928,45 +918,58 @@ Still, simplicity can often be more important than maintainability. I'll still u
 
 
 
-#### Only provide getters and setters if you *need* the encapsulation
+#### Avoid getters and setters
 
-*Needing* encapsulation in C is often a sign that you're overcomplicating things. Anyway, if you do, only use getters and setters to show that extra computation is happening behind the scenes when they're called, and specify fields as private in the struct definition with a comment.
+If you're seeking encapsulation in C, you're probably overcomplicating things. Encourage your users to access and set struct members directly; never prefix members with `_` to denote an access level. Declare your struct invariants, and you don't need to worry about your users breaking things - it's their responsibility to provide a valid struct. Try to make that easy for them, though.
 
-If there's nothing special happening behind the scenes, let your users get and set the struct members directly. Struct members should default to public unless you have a good reason to make them private. Yes, this will mean the public interface will have to change often. I consider the simplicity and brevity of direct member access to be worth it.
-
-Don't prefix private struct members with `_`: you don't need to, it looks ugly, and it ties the access level with the name, which will make it a pain to change later. Also, if you do without `_` prefixes, users can just access the members of the struct directly, as below:
+As advised in [another rule](#always-prefer-to-return-a-value-rather-than-modifying-pointers), avoid mutability wherever you can.
 
 ``` c
-// Good
+// Rather than:
+void City_set_state( City * const c, char const * const state )
+{
+    c->state = state;
+    c->country = country_of_state( state );
+}
+
+// Always prefer immutability and purity:
+City City_with_state( City c, char const * const state )
+{
+    c.state = state;
+    c.country = country_of_state( state );
+    return c;
+}
+
 City c = City_new( "Vancouver" );
-c = City_set_state( c, "BC" );
+c = City_with_state( "BC" );
 printf( "%s is in %s, did you know?\n", c.name, c.country );
 ```
 
 But you should always provide an interface that allows for [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming):
 
 ``` c
-// Better
 City const c = City_new( "Boston", .state = "MA" );
-printf( "I think I'm going to %s\n"
-        "Where no one changes my state\n", c.name );
+printf( "I think I'm going to %s, \n"
+        "Where no one changes my state\n", c.name, c.country );
 ```
 
 
 
 #### C isn't object-oriented, and you shouldn't pretend it is
 
-C doesn't have classes, methods, inheritance, object encapsulation, or polymorphism. Not to be rude, but: **deal with it**. C might be able to achieve crappy, complicated imitations of those things, but it's just not worth it.
+C doesn't have classes, methods, inheritance, (nice) object encapsulation, or polymorphism. Not to be rude, but: **deal with it**. C might be able to achieve crappy, complicated imitations of those things, but it's just not worth it.
 
 As it turns out, C already has an entirely-capable language model. In C, we define data structures, and we define functionality that uses combinations of those data structures. Data and functionality aren't intertwined in complicated contraptions, and this is a good thing.
 
-Haskell, at the forefront of language design, made the same decision to separate data and functionality. Learning Haskell is one of the best things a programmer can do to improve their technique, but I think it's especially beneficial for C programmers, because of the underlying similarities between C and Haskell. Yes, C doesn't have anonymous functions, and no, you won't be writing monads in C anytime soon. But by learning Haskell, you'll learn how to write good software without classes, without mutability, and with modularity, and these qualities are very beneficial for C programming.
+Haskell, at the forefront of language design, made the same decision to separate data and functionality. Learning Haskell is one of the best things a programmer can do to improve their technique, but I think it's especially beneficial for C programmers, because of the underlying similarities between C and Haskell. Yes, C doesn't have anonymous functions, and no, you won't be writing monads in C anytime soon. But by learning Haskell, you'll learn how to write good software without classes, without mutability, and with modularity. These qualities are very beneficial for C programming.
 
 Embrace and appreciate what C offers, rather than attempting to graft other paradigms onto it.
 
 
 
 #### Always use `calloc` instead of `malloc`
+
+<!-- TODO -->
 
 Use `calloc` because undefined memory is dangerous. Computers are so much faster, and compilers are so much better, and `malloc` is just something we don't need anymore. Always use `calloc` and stop caring about the difference - at least, until you've finished development, and have done benchmarks.
 
