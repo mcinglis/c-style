@@ -161,6 +161,32 @@ It's harder for users to write multiple `#include`s just like it's harder for us
 
 
 
+#### Provide include guards for all headers to prevent double inclusion
+
+This probably goes without saying for most C programmers, but I figured I should throw it in for completeness.
+
+[Include guards](https://en.wikipedia.org/wiki/Include_guard) let you include a header file "twice" without it breaking compilation.
+
+``` c
+// Good
+#ifndef INCLUDED_ALPHABET_H
+#define INCLUDED_ALPHABET_H
+
+...
+
+#endif // ifndef INCLUDED_ALPHABET_H
+```
+
+[Rob Pike argues against include guards](http://www.lysator.liu.se/c/pikestyle.html), saying you should just never include files in include files. He says that include guards still "result in thousands of needless lines of code passing through the lexical analyzer".
+
+In fact, [GCC will detect include guards](http://gcc.gnu.org/onlinedocs/cppinternals/Guard-Macros.html), and won't read such files a second time. I don't know if other compilers perform this optimization.
+
+I don't think it's a good idea to require your users include the dependencies of their header files. Your header file's dependencies shouldn't really be considered "public". It would enforce the rule "don't depend on what your header files include", but it falls apart as soon as header files are using things you don't need, like `FILE` or `bool`. Users shouldn't have to care about that.
+
+So, always write include guards, and make your users' lives easy.
+
+
+
 #### No global or static variables if you can help it (you probably can)
 
 Global variables are just hidden arguments to all the functions that use them. They make it really hard to understand what a function does, and how it is controlled.
