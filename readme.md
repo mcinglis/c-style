@@ -587,7 +587,7 @@ By "act differently", I mean if things will break when users wouldn't expect the
 - modifies the calling context, e.g., with a `return` or `goto`.
 - takes an array literal as a named argument. ([why](http://stackoverflow.com/questions/5503362/passing-array-literal-as-macro-argument))
 
-Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`. I try to limit my SHOUTING in my code.
+Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd call a macro `Apple_SCARY` rather than `APPLE_SCARY`. I try to limit the SHOUTING in my code.
 
 
 
@@ -781,6 +781,21 @@ This mistake is committed by way too many codebases. It masks what's really goin
 These criticisms apply equally to struct typedefs, as advised above. In my opinion, the visual clarity achieved by removing all the `struct` declarations is worth requiring users be aware of (or realize) the convention. Also, having a consistent naming scheme for structs, with TitleCase names, helps recognizability.
 
 Pointer typedefs are particularly nefarious because they exclude the users from qualifying the pointee with `const`. This is a huge loss, for reasons enumerated in other rules.
+
+
+
+#### Give enums `UPPERCASE_SNAKE_NAMES`, and lowercase their values
+
+Because enums are mostly just integer constants, it's natural to name them the same way as `#define`d constants. The `enum` type prefix will communicate that it expects an enum value, and the lowercase value suffixes will communicate that they aren't quite integer constants.
+
+``` c
+enum JSON_TYPE {
+    JSON_TYPE_null,
+    JSON_TYPE_bool,
+    JSON_TYPE_number,
+    ...
+};
+```
 
 
 
