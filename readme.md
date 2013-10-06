@@ -724,6 +724,11 @@ If it's valid to assign a value of one type to a variable of another type, then 
 - making an array index an `int`, but you can do this with assignment anyway
 - using compound literals for structs and arrays
 
+``` c
+// This compiles fine:
+struct Apple * apples = malloc( sizeof( *apples ) );
+```
+
 
 
 #### Give structs TitleCase names, and typedef them
