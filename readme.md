@@ -175,9 +175,9 @@ Static variables in functions are just global variables scoped to that function;
 
 
 
-#### Minimize what you expose; use `static` where you can
+#### Minimize what you expose; declare functions `static` where you can
 
-If a function isn't exported in the header, declare it as `static` in the source file to give it internal linkage. This lowers the chance of name-clashes 
+If a function isn't exported in the header, declare it as `static` in the source file to give it internal linkage. This eliminates the chance of name-clashes among object files, enables a few optimizations, and can improve the linking speed.
 
 
 
