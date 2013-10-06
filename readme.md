@@ -767,6 +767,14 @@ Pointer typedefs are particularly nefarious because they exclude the users from 
 
 
 
+#### Never end your names with `_` or `_t`; they're reserved for standards
+
+[Here's a list](https://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html) of the names reserved by future ISO C standards.
+
+[It's](https://github.com/facebook/libphenom) [not](https://github.com/joyent/libuv) [hard](https://github.com/liuliu/ccv) to find popular C libraries and projects that make this mistake. It happens way too often. Don't make the same mistake in your library!
+
+
+
 #### Only use pointers in structs for nullity, dynamic arrays or incomplete types
 
 Every pointer in a struct is an opportunity for a segmentation fault.
