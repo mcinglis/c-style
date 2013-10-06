@@ -438,6 +438,11 @@ if ( is_tasty( banana ) ) {
 ```
 
 
+#### Always use brackets, even for single-statement blocks
+
+Always use brackets, because it's safer, easier to change, and easier to read because it's more consistent. For the same reasons, don't put a single-line statement on the same line as the condition.
+
+
 
 #### Avoid unsigned types because the integer conversion rules are complicated
 
