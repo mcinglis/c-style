@@ -245,6 +245,18 @@ Because of this rule, you should always pad the `*` type qualifier with spaces.
 
 
 
+#### Don't write parameter names in function prototypes if they just repeat the type
+
+``` c
+// Bad
+void Trie_add( Trie const * trie, char const * string );
+
+// Good
+void Trie_add( Trie const *, char const * );
+```
+
+
+
 #### Use `double` rather than `float`, unless you have a specific reason otherwise
 
 From *21st Century C*, by Ben Klemens:
@@ -254,7 +266,7 @@ printf( "%f\n", ( float )333334126.98 );    // 333334112.000000
 printf( "%f\n", ( float )333334125.31 );    // 333334112.000000
 ```
 
-Space isn't an issue anymore, but floating-point errors still are. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. Unless you have a very specific reason to use `float`s, use `double`s instead. Don't use `float`s "because they will be faster", because without benchmarks, you can't know if it actually makes any discernible difference. Finish development, then perform benchmarks to identify the choke-points, then use `float`s in those areas, and see if it actually helps. Don't prematurely optimize.
+For the vast majority of applications nowadays, space isn't an issue, but floating-point errors can still pose a threat. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. Unless you have a very specific reason to use `float`s, use `double`s instead. Don't use `float`s "because they will be faster", because without benchmarks, you can't know if it actually makes any discernible difference. Finish development, then perform benchmarks to identify the choke-points, then use `float`s in those areas, and see if it actually helps. Before then, prioritize everything else over performance. Don't prematurely optimize.
 
 
 
