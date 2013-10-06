@@ -312,7 +312,7 @@ something( first != '\0' );
 return character == NULL;
 ```
 
-I'll often skip this rule for boolean functions named as a predicate, like `is_edible` or `has_client`. It's still not *completely* obvious what the conditional is checking for, but I consider the visual clutter of a `== true` or `== false` to be more of a hassle than a help to readers in this situation.
+I'll often skip this rule for boolean functions named as a predicate, like `is_edible` or `has_client`. It's still not *completely* obvious what the conditional is checking for, but I usually consider the visual clutter of a `== true` or `== false` to be more of a hassle than a help to readers in this situation. Use your judgement.
 
 
 
@@ -343,21 +343,22 @@ while ( w = calc_width( shape ),
         !valid_width( w ) ) {
     shape = reshape( shape, w );
 }
+// Probably a great candidate for extraction to a function
 ```
 
 Don't use multiple assignment unless the variables' values are semantically linked. If there are two variable assignments near each other that coincidentally have the same value, don't throw them into a multiple assignment just to save a line.
 
-But, use the comma operator, as above, judiciously. If you can do without it, do:
+Use the comma operator, as above, judiciously. Do without it if you can:
 
 ``` c
 // Bad
-for ( int i = 0, bounds = get_bounds( m ); i < bounds; i += 1 ) {
+for ( int i = 0, limit = get_limit( m ); i < limit; i += 1 ) {
     ...
 }
 
 // Better
-int bounds = get_bounds( m );
-for ( int i = 0; i < bounds; i += 1 ) {
+int const limit = get_limit( x );
+for ( int i = 0; i < limit; i += 1 ) {
     ...
 }
 ```
@@ -374,8 +375,8 @@ If the function name is a predicate, like `is_adult` or `in_tree`, and will read
 
 ``` c
 // Good
-int rv = listen( fd, backlog );
-if ( rv == -1 ) {
+int r = listen( fd, backlog );
+if ( r == -1 ) {
     perror( "listen" );
     return 1;
 }
@@ -608,13 +609,36 @@ bool Alphabet_is_valid( Alphabet const ab ) {
 
 #### Initialize strings as arrays, and use `sizeof` for byte size
 
-Always initialize your string literals as arrays, unless you have a very good reason. Then, with an array variable, you can use it with `sizeof` to get the byte size, rather than something error-prone like `strlen( s ) + 1` or `#define`ing the number.
+Always initialize your string literals as arrays, because it lets you get the byte size with just `sizeof( str )`. If you initialize them as pointers, you have to get the byte size with `strlen( str ) + 1` - I know I've been bitten more than once by forgetting the `+ 1`.
 
 ``` c
 // Good
 char const message[] = "always use arrays for strings!";
 write( output, message, sizeof( message ) );
 ```
+
+Also, pointer initializations are less safe than array initializations, *unless* you compile with `-Wwrite-strings` to ensure string literals are initialized with the type `char const *`. Unfortunately, `-Wwrite-strings` isn't included in `-Wall` or `-Wextra`: you have to explicitly enable it.  Without `-Wwrite-strings`, you can assign string literals to a `char *`. But your program will seg-fault when you re-assign the elements of that pointer.
+
+``` c
+// Without -Wwrite-strings, this will compile without warnings, but
+// it will prompt a segmentation fault at the second line.
+char * xs = "hello";
+xs[ 0 ] = 'c';
+
+// This program will compile and execute fine.
+char xs[] = "hello";
+xs[ 0 ] = 'c';
+```
+
+The benefit of initializing string literals as pointers is that those pointers will point to read-only memory, potentially preventing some optimizations. Initializing string literals as arrays essentially creates a mutable string that can only be "artificially" protected against modifications with `const` - but this can be defeated with a cast.
+
+Again, I advise against prematurely optimizing. Until you've finished development and have done benchmarks, performance should be your lowest priority. I haven't seen any tests of this, but I'd be very surprised to see any noticeable speed improvements by defining string literals as pointers.
+
+As mentioned in the rule on `const`ing everything: never ever cast away a `const`. Remove the `const` instead. Don't worry about "artificial" protections. I know I'd much prefer my constant values to be protected by explicit, syntactic constructs that will warn when compiling, rather than implicit, obscure rules that will seg-fault when violated.
+
+Finally, sticking to array initializations saves you and your readers the conceptual overhead of switching between pointer initializations and array initializations, depending on if you need mutability or not.
+
+Just always initialize string literals as arrays, and keep it simple.
 
 
 
@@ -766,7 +790,7 @@ If it's valid to assign a value of one type to a variable of another type, then 
 
 
 
-#### Give structs CamelCase names, and typedef them
+#### Give structs TitleCase names, and typedef them
 
 ``` c
 // Good
@@ -776,9 +800,11 @@ typedef struct Person {
 } Person;
 ```
 
-CamelCase names should be exclusively used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability when the struct definition becomes large.
+TitleCase names should be exclusively used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability when the struct definition becomes large.
 
-I don't typedef structs used for named arguments (see below), however, because the CamelCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
+I don't typedef structs used for named arguments (see below), however, because the TitleCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
+
+If a user dislikes this practice of typedefing structs (which is fair, because it does have drawbacks - see below), they can always use the `struct` namespace instead.
 
 
 
@@ -796,7 +822,9 @@ This mistake is committed by way too many codebases. It masks what's really goin
 
 Also, pointer typedefs exclude the users from adding `const` qualifiers to the pointee. This is a huge loss for the readability of your codebase.
 
-Even if you intend to be consistent about it, so that all camel-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and arguments that will be modified (and losing the benefits of that).
+Even if you intend to be consistent about it, so that all title-case typedefs are actually pointer to structs, you'll be violating the rule above on using pointers only for arrays and arguments that will be modified (and losing the benefits of that).
+
+These criticisms apply equally to all typedefs - including for structs, as advised above. In my opinion, the visual clarity achieved by removing all the `struct` declarations is worth requiring users be aware of (or realize) the convention. Also, having a consistent naming scheme for structs, with TitleCase names, can help recognizability.
 
 
 
