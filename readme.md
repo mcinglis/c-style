@@ -666,6 +666,21 @@ Yeah, `[]` hints that the argument will be treated as an array, but so does a pl
 
 
 
+#### Always prefer array indexing over pointer arithmetic
+
+If you're working with an array of things, treat them as an array. Pointer arithmetic is confusing and bug-prone. Sticking to array indexing often lets you keep the important variables constant, and only the index variables non-constant.
+
+``` c
+// Bad
+for ( ; *str != '\0'; str += 1 );
+
+// Good
+for ( int i = 0; str[ i ] != '\0'; i += 1 );
+```
+
+
+
+
 #### Document your struct invariants, and provide invariant checkers
 
 > An **invariant** is a condition that can be relied upon to be true during execution of a program.
@@ -932,6 +947,12 @@ Still, simplicity can often be more important than maintainability. I'll still u
 
 
 
+#### If you're providing new and free functions only for a struct member, allocate memory for the whole struct
+
+If you're providing `Foo_new` and `Foo_free` methods only so you can allocate memory for a member of the `Foo` struct, you've lost the benefits and safety of automatic storage. You may as well have the new and free methods allocate memory for the whole struct, so users can pass it outside the scope it was defined (without dereferencing it), if they want.
+
+
+
 #### Avoid getters and setters
 
 If you're seeking encapsulation in C, you're probably overcomplicating things. Encourage your users to access and set struct members directly; never prefix members with `_` to denote an access level. Declare your struct invariants, and you don't need to worry about your users breaking things - it's their responsibility to provide a valid struct. Try to make that easy for them, though.
@@ -978,12 +999,6 @@ As it turns out, C already has an entirely-capable language model. In C, we defi
 Haskell, at the forefront of language design, made the same decision to separate data and functionality. Learning Haskell is one of the best things a programmer can do to improve their technique, but I think it's especially beneficial for C programmers, because of the underlying similarities between C and Haskell. Yes, C doesn't have anonymous functions, and no, you won't be writing monads in C anytime soon. But by learning Haskell, you'll learn how to write good software without classes, without mutability, and with modularity. These qualities are very beneficial for C programming.
 
 Embrace and appreciate what C offers, rather than attempting to graft other paradigms onto it.
-
-
-
-#### If you're providing new and free functions only for a struct member, allocate memory for the whole struct
-
-If you're providing `Foo_new` and `Foo_free` methods only so you can allocate memory for a member of the `Foo` struct, you've lost the benefits and safety of automatic storage. You may as well have the new and free methods allocate memory for the whole struct, so users can pass it outside the scope it was defined, if they want.
 
 
 
