@@ -318,7 +318,7 @@ I'll often skip this rule for boolean functions named as a predicate, like `is_e
 
 #### Never change state within an expression (e.g. with assignments or `++`)
 
-Readable programs flow from top to bottom: not right to left. Unfortunately, this happens way too much in C programming. I think the habit and practice was started by *The C Programming Language*, and it's stuck with much of the culture ever since. It's a really bad habit, and makes it so much harder to follow what your program is doing. Never change state in an expression.
+Readable (imperative) programs flow from top to bottom: not right to left. Unfortunately, this happens way too much in C programming. I think the habit and practice was started by *The C Programming Language*, and it's stuck with much of the culture ever since. It's a really bad habit, and makes it so much harder to follow what your program is doing. Never change state in an expression.
 
 ``` c
 Trie_add( *child, ++word );     // Bad
@@ -620,16 +620,13 @@ write( output, message, sizeof( message ) );
 
 #### Pointer arguments only for public modifications, or for nullity
 
-Due to [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), structs will be "copied" when passed into functions that don't modify them. If you think this is a problem, consider:
+In C, you can pass struct values to functions, and by [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), they'll be copied into the frame of the receiving function. The original struct can't be modified by that function (although it can return the modification). Like `const`, using this feature wherever you can makes it easier for your readers to reason about your program.
 
-- compilers are smart and can optimize this - if a function only uses one field of a struct, then the compiler can only copy that field
-- dereferencing pointers is slow - it's better to give the function frame the actual data straight-up
-- most structs are only a few bytes, so copying is negligible
-- are you optimizing without benchmarks?
+When you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. This is in stark contrast to projects that pass pointers everywhere: you have no certainty anywhere.
 
 Defining a *modification* is tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the value's public state. This depends on common-decency of users of the interface to respect visibility comments.
 
-So, if a struct will be "modified" by a function, have that function accept a pointer-to-const of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which structs have pointer members.
+So, if a struct will be "modified" by a function, have that function accept a pointer of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which structs have pointer members.
 
 ``` c
 typedef struct {
@@ -669,7 +666,7 @@ void Country_fire_ze_missiles( Country const country ) {
 }
 ```
 
-The other case to use pointer arguments is if the function *needs* nullity (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, use const to signal that the pointer is not for modification.
+The other situation to use pointer arguments is if the function *needs* nullity (i.e. the poor man's [Maybe](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)). If so, be sure use `const` to signal that the pointer is not for modification, and so it can accept `const` arguments.
 
 ``` c
 // Good: `NULL` represents an empty list, and list is a pointer-to-const
@@ -682,17 +679,17 @@ int List_length( List const * list ) {
 }
 ```
 
-If you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. Furthermore, when your readers see a dereference in a call to a function, they can be totally certain that it won't be changed by that function (when you can't make the pointee constant).
+Sticking to this rule means ditching incomplete struct types, but I don't really like them anyway (see the "C isn't object-oriented" rule).
 
 
 
 #### Never use array syntax for function arguments definitions
 
-[Arrays decay into pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as arguments to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can never receive an array as a argument; [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array argument declaration would suggest; it would return the size of the pointer, not the array pointed to.
+[Arrays become pointers in most expressions](http://c-faq.com/aryptr/aryptrequiv.html), including [when passed as arguments to functions](http://c-faq.com/aryptr/aryptrparam.html). Functions can never receive an array as a argument: [only a pointer to the array](http://c-faq.com/aryptr/aryptr2.html). `sizeof` won't work like an array argument declaration would suggest: it would return the size of the pointer, not the array pointed to.
 
-[Static array indices in function arguments are nice](http://hamberg.no/erlend/posts/2013-02-18-static-array-indices.html), but only protect against very trivial situations, like when given literal `NULL`. Also, GCC doesn't warn about their violation yet, only Clang. I don't consider the confusing, non-obvious syntax to be worth the small compilation check.
+[Static array indices in function arguments are nice](http://hamberg.no/erlend/posts/2013-02-18-static-array-indices.html), but only protect against very trivial situations, like when given literal `NULL`. Also, GCC doesn't warn about their violation [yet](http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50584), only Clang. I don't consider the confusing, non-obvious syntax to be worth the small compilation check.
 
-Yeah, `[]` hints that the argument will be treated as an array, but so does a plural name like `pets` or `children`, so do that instead.
+Yeah, `[]` hints that the argument will be treated as an array, but so does a plural name like `requests`, so do that instead.
 
 
 
@@ -702,7 +699,7 @@ Yeah, `[]` hints that the argument will be treated as an array, but so does a pl
 
 For any function that takes a struct (or a pointer), all invariants of that struct should be true before and after the execution of the function. Invariants make it the caller's responsibility to provide valid data, and the function's responsibility to return valid data. Invariants save those functions from having to repeat assertions of those conditions, or worse, not even checking and working with invalid data.
 
-Provide an "invariants" comment section at the end of your struct definition, and list all the invariants you can think of. Also, implement `is_valid` and `assert_valid` functions for users to check those assertions on values of the structs they create on their own. These functions are crucial to being able to trust that the invariants hold for value of that struct. Without them, how will callers know?
+Provide an "invariants" comment section at the end of your struct definition, and list all the invariants you can think of. Also, implement `is_valid` and `assert_valid` functions for users to check those assertions on values of the structs they create on their own. These functions are crucial to being able to trust that the invariants hold for values of that struct. Without them, how will the users know?
 
 My university faculty is [pretty big](http://www.itee.uq.edu.au/sse/projects) on software correctness. It certainly rubbed off on me.
 
@@ -712,17 +709,17 @@ My university faculty is [pretty big](http://www.itee.uq.edu.au/sse/projects) on
 
 Good software fails fast. Also, assertion errors are much more informative than segmentation faults. If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between arguments.
 
-Don't assert struct invariants, because they aren't the function's responsibility.
+Don't assert struct invariants in functions, because they're the caller's responsibility.
 
 Don't repeat assertions. If `foo` first calls `bar`, and `bar` first calls `baz`, and all three functions need the `widget` argument to be non-null, then just assert that `widget` isn't null in `baz`, and treat that assertion as transitive to `bar`, and thus to `foo`. My rule is, as titled, "only assert where it will fail otherwise". This means if another assert already has your back, don't sweat it.
 
-Don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise (like null pointers). Never let user input invalidate your assertions: filter it first, or report the error.
+Don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise (like null pointers).
 
 
 
 #### Repeat `assert` calls; don't `&&` them together
 
-Repeating your `assert` calls improves the assertion error reporting, and is more readable.
+Repeating your `assert` calls improves the assertion error reporting. If you chain assertions together with `&&`, you won't know which condition failed.
 
 
 
