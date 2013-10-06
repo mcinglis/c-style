@@ -583,14 +583,6 @@ Also, if I do capitalize a macro, I don't capitalize the macro's prefix: I'd cal
 
 
 
-#### Don't bother aligning `\` in multi-line macros, because it won't last
-
-Aligning the `\` is high-maintenance and painful, so any alignment errors probably won't get fixed. By the broken-window theory, this will lead to worse things. So, just don't bother with it.
-
-Instead, put the `\` separated by one space from the last character on the line, and be done with it.
-
-
-
 #### If a macro will only be used in a function, `#define` and `#undef` it in the body
 
 For the same reasons why we should always minimize the scope of our variables, if we can limit the scope of our macros, we should.
