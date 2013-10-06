@@ -260,7 +260,7 @@ Space isn't an issue anymore, but floating-point errors still are. It's much har
 
 This reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than just declaration (`int x;`). Initializing a variable usually often means you can `const` it, too.
 
-To me, all declarations are shifty.
+To me, all declarations (i.e. non-initializations) are shifty.
 
 
 
@@ -401,7 +401,7 @@ if ( is_tasty( banana ) ) {
 
 > Misunderstanding integer conversion rules can lead to errors, which in turn can lead to exploitable vulnerabilities. Severity: medium, Likelihood: probable.
 
-*Expert C Programming* (a great book that explores the ANSI standard) also explains this in its first chapter. The takeaway is that you shouldn't declare `unsigned` variables even if they shouldn't be negative. If you want a larger maximum value, use a `long` or `long long`. If your function will fail with a negative number, assert that it's positive. Remember, lots of dynamic languages make do with a single integer type that can be either sign.
+*Expert C Programming* (a great book that explores the ANSI standard) also explains this in its first chapter. The takeaway is that you shouldn't declare `unsigned` variables even if they shouldn't be negative. If you want a larger maximum value, use a `long` or `long long` (the next size up). If your function will fail with a negative number, assert that it's positive. Remember, lots of dynamic languages make do with a single integer type that can be either sign.
 
 Unsigned values offer no type safety; even with `-Wall` and `-Wextra`, GCC doesn't bat an eyelid at `unsigned int x = -1;`.
 
@@ -638,6 +638,16 @@ Finally, sticking to array initializations saves you and your readers the concep
 
 Just always initialize string literals as arrays, and keep it simple.
 
+
+
+#### Where possible, use `sizeof` on the variable; not the type
+
+Then, if you change the type of the variable later, you only have to change it once. You'll always get the correct size.
+
+``` c
+// Good
+int * a = malloc( n * sizeof( *a ) );
+```
 
 
 #### Never use array syntax for function arguments definitions
