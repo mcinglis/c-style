@@ -441,6 +441,33 @@ if ( is_tasty( banana ) ) {
 
 Always use brackets, because it's safer, easier to change, and easier to read because it's more consistent. For the same reasons, don't put a single-line statement on the same line as the condition.
 
+What follows is actual code from *The C Programming Language*. Don't do this:
+
+``` c
+while (--argc > 0 && (*++argv)[0] == '-')
+    while (c = *++argv[0])
+        switch (c) {
+        case 'x':
+            except = 1;
+            break;
+        case 'n':
+            number = 1;
+            break;
+        default:
+            printf("find: illegal option %c\n", c);
+            argc = 0;
+            found = -1;
+            break;
+        }
+if (argc != 1)
+    printf("Usage: find -x -n pattern\n");
+else
+    while (getline(line, MAXLINE) > 0) {
+        ...
+    }
+return found;
+```
+
 
 
 #### Avoid unsigned types because the integer conversion rules are complicated
