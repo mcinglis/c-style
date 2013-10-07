@@ -481,8 +481,8 @@ Actually, don't use either form if you can help it. Changing state should always
 int x = a * b + c / d;          // Bad
 int x = ( a * b ) + ( c / d );  // Good
 
-&( ( struct sockaddr_in * ) sa )->sin_addr;      // Bad
-&( ( ( struct sockaddr_in * ) sa )->sin_addr );  // Good
+&sockaddr->sin_addr;            // Bad
+&( sockaddr->sin_addr );        // Good
 ```
 
 You can and should make exceptions for commonly-seen combinations of operations. For example, skipping the operators when combining the equality and boolean operators is fine, because readers are probably used to that, and are confident of the result.
@@ -490,7 +490,7 @@ You can and should make exceptions for commonly-seen combinations of operations.
 ``` c
 // Fine
 return hungry == true
-       || ( legs != NULL && fridge.empty == false );
+    || ( legs != NULL && fridge.empty == false );
 ```
 
 
@@ -514,7 +514,7 @@ If you limit yourself to a maximum of one blank line within functions, this rule
 If a few variables are only used in a contiguous sequence of lines, and only a single value is used after that sequence, then those lines are a great candidate for extracting to a function.
 
 ``` c
-// Good: addr was only used in a part of handle_request
+// Good: addr was only used in the first part of handle_request
 int accept_request( int const listenfd )
 {
     struct sockaddr addr;
@@ -773,7 +773,7 @@ Just like working with uninitialized variables is dangerous, working with void p
 If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. There are only three reasons to use typecasts:
 
 - performing true division (not integer division) of `int` expressions
-- making an array index an `int`, but you can do this with assignment anyway
+- making an array index an integer, but you can do this with assignment anyway
 - using compound literals for structs and arrays
 
 ``` c
