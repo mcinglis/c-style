@@ -845,9 +845,9 @@ enum JSON_TYPE {
 
 
 
-#### Always give enums a final value to represent how many values there are
+#### Define a constant for the size of every enum
 
-There's no versatile, future-proof way to work with loops, arrays, or bit-fields of the `enum` otherwise. Always provide a value to denote the size of the enumeration, to avoid hard-coded values (by you or your users).
+There's no versatile, future-proof way to work with loops, arrays, or bit-fields of the `enum` otherwise. Always define a constant to denote the size of the enumeration, to avoid hard-coded values (by you or your users).
 
 ``` c
 enum SUIT {
