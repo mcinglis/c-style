@@ -14,6 +14,46 @@ So, I'm certain I'm wrong on even more points. This is a constant work-in-progre
 
 ---
 
+
+
+#### Always develop and compile with all warnings (and more) on
+
+No excuses here. Always develop and compile with warnings on. It turns out, though, that `-Wall` and `-Wextra` actually don't enable "all" warnings. There are a few others that can be really helpful:
+
+``` make
+CFLAGS += -Wall -Wextra -Wpedantic \
+          -Wformat=2 -Wno-unused-parameter -Wshadow \
+          -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
+          -Wredundant-decls -Wnested-externs -Wswitch-default \
+          -Wmissing-include-dirs
+
+# GCC warnings that Clang doesn't provide:
+ifeq ($(CC),gcc)
+    CFLAGS += -Wjump-misses-init -Wlogical-op
+endif
+```
+
+
+
+#### Use GCC's and Clang's `-M` to automatically generate object file dependencies
+
+The GNU Make Manual [touches](https://www.gnu.org/software/make/manual/make.html#Automatic-Prerequisites) on how to automatically generate the dependencies of your object files from the source file's `#include`s. The example rule given in the manual is a bit complicated. Here's the rules I use:
+
+``` make
+# Have the compiler output dependency files with make targets for each
+# of the object files. The `MT` option specifies the dependency file
+# itself as a target, so that it's regenerated when it should be.
+dependencies = $(objects:.o=.d)
+%.d: %.c
+	$(CC) -M -MT '$(@:.d=.o) $@' $(CPPFLAGS) $< > $@
+
+# Include each of those dependency files; Make will run the rule above
+# to generate each dependency file (if it needs to).
+-include $(dependencies)
+```
+
+
+
 #### Write to the most modern standard you can
 
 C11 is better than C99, which is (far) better than C89. C11 support is still coming along in GCC and Clang, but many features are there. If you need to support other compilers in the medium-term, write to C99.
@@ -855,6 +895,8 @@ These criticisms apply equally to struct typedefs, as advised above. In my opini
 
 Pointer typedefs are particularly nefarious because they exclude the users from qualifying the pointee with `const`. This is a huge loss, for reasons enumerated in other rules.
 
+Function pointer typedefs are understandable when you're repeating the function type in many different locations. I'll only consider a function pointer `typedef` after three repetitions of the type. Before you do `typedef` a function pointer, consider if it actually helps people understand what that type represents.
+
 
 
 #### Give enums `UPPERCASE_SNAKE` names, and lowercase their values
@@ -1110,42 +1152,4 @@ As it turns out, C already has an entirely-capable language model. In C, we defi
 Haskell, at the forefront of language design, made the same decision to separate data and functionality. Learning Haskell is one of the best things a programmer can do to improve their technique, but I think it's especially beneficial for C programmers, because of the underlying similarities between C and Haskell. Yes, C doesn't have anonymous functions, and no, you won't be writing monads in C anytime soon. But by learning Haskell, you'll learn how to write good software without classes, without mutability, and with modularity. These qualities are very beneficial for C programming.
 
 Embrace and appreciate what C offers, rather than attempting to graft other paradigms onto it.
-
-
-
-#### Use GCC's and Clang's `-M` to automatically generate object file dependencies
-
-The GNU Make Manual [touches](https://www.gnu.org/software/make/manual/make.html#Automatic-Prerequisites) on how to automatically generate the dependencies of your object files from the source file's `#include`s. The example rule given in the manual is a bit complicated. Here's the rules I use:
-
-``` make
-# Have the compiler output dependency files with make targets for each
-# of the object files. The `MT` option specifies the dependency file
-# itself as a target, so that it's regenerated when it should be.
-dependencies = $(objects:.o=.d)
-%.d: %.c
-	$(CC) -M -MT '$(@:.d=.o) $@' $(CPPFLAGS) $< > $@
-
-# Include each of those dependency files; Make will run the rule above
-# to generate each dependency file (if it needs to).
--include $(dependencies)
-```
-
-
-
-#### Always develop and compile with all warnings (and more) on
-
-No excuses here. Always develop and compile with warnings on. It turns out, though, that `-Wall` and `-Wextra` actually don't enable "all" warnings. There are a few others that can be really helpful:
-
-``` make
-CFLAGS += -Wall -Wextra -Wpedantic \
-          -Wformat=2 -Wno-unused-parameter -Wshadow \
-          -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
-          -Wredundant-decls -Wnested-externs -Wswitch-default \
-          -Wmissing-include-dirs
-
-# GCC warnings that Clang doesn't provide:
-ifeq ($(CC),gcc)
-    CFLAGS += -Wjump-misses-init -Wlogical-op
-endif
-```
 
