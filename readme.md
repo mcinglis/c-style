@@ -845,6 +845,25 @@ enum JSON_TYPE {
 
 
 
+#### Always give enums a final value to represent how many values there are
+
+There's no versatile, future-proof way to work with loops, arrays, or bit-fields of the `enum` otherwise. Always provide a value to denote the size of the enumeration, to avoid hard-coded values (by you or your users).
+
+``` c
+enum SUIT {
+    SUIT_hearts,
+    SUIT_diamonds,
+    SUIT_clubs,
+    SUIT_spades
+};
+
+#define NUM_SUITS 4
+```
+
+I like to `#define` the size explicitly, rather than making it the last enum value. It seems natural to exclude the size of the enum from the actual enum itself - `NUM_SUITS` isn't a card suit I've ever heard of! It also protects against one of the previous enum values from being explicitly set (e.g. `SUIT_hearts = 1`), which would mean the last enum value wouldn't represent the size of the enum.
+
+
+
 #### Never begin names with `_` or end them with `_t`: they're reserved for standards
 
 [Here's a list](https://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html) of the names reserved by future ISO C standards. `types_like_this_t` and `_anything` are identifiers that are reserved by future standards of C, so don't use them for your own identifiers.
