@@ -240,7 +240,18 @@ bool Trie_has( Trie const, char const * const );
 bool Trie_has( Trie, char const * );
 ```
 
-Also, only `const` the *pointees* of struct members, not the struct members themselves. For example, if any of your struct members should be assignable to a string literal, give that member the type `char const *`. Qualifying the members with `const` [hurts](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) more than helps. Users can just make their own variables `const` if they need that.
+Unfortunately, C can't handle conversions from non-const pointee-pointees to const pointee-pointees, I'd recommend against making pointee-pointees `const`. That is, each variable should only be defined with a maximum of two `const` qualifiers - any more, and you'll be qualifying pointee-pointees, which is problematic.
+
+``` c
+char ** const xss = malloc( 3 * sizeof( char * ) );
+// Warning: initialization from incompatible pointer type
+char const * const * const yss = xss;
+
+// No warning:
+char * const * const zss = xss;
+```
+
+Only `const` the *pointees* of struct members, not the struct members themselves. For example, if any of your struct members should be assignable to a string literal, give that member the type `char const *`. Qualifying the members with `const` [hurts](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) more than helps. Users can just make their own variables `const` if they need that.
 
 I generally only make return-type pointees `const` if I need to, and after careful consideration. This can harm the flexibility of your interface, so watch out.
 
