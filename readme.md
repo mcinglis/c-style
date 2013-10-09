@@ -24,8 +24,7 @@ No excuses here. Always develop and compile with warnings on. It turns out, thou
 CFLAGS += -Wall -Wextra -Wpedantic \
           -Wformat=2 -Wno-unused-parameter -Wshadow \
           -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
-          -Wredundant-decls -Wnested-externs -Wswitch-default \
-          -Wmissing-include-dirs
+          -Wredundant-decls -Wnested-externs -Wmissing-include-dirs
 
 # GCC warnings that Clang doesn't provide:
 ifeq ($(CC),gcc)
@@ -591,6 +590,36 @@ return hungry == true
 The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Worse, a missing `break` will still compile: this tripped me up all the time when I used `switch`. Also, `case` values have to be an integral constant expression, so they can't match against another variable. This discourages extractions of logic to functions. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
 
 `if` has none of these issues, is simpler, and easier to change.
+
+Even if you need the fall-through behavior of `switch`, like:
+
+``` c
+switch ( x ) {
+    case A:
+        // A stuff, fall through to B
+    case B:
+        // B stuff
+        break;
+    default:
+        // default stuff
+}
+```
+
+The equivalent `if` is much more informative and readable:
+
+``` c
+if ( x == A ) {
+    // A stuff
+}
+
+if ( x == A || x == B ) {
+    // B stuff
+} else {
+    // default stuff
+}
+```
+
+The `if` equivalent is much more obvious about what's going to happen and why. The "B stuff" block actually applies when `x == A` too, and this is much more obvious in the `if` version.
 
 
 
