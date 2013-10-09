@@ -40,10 +40,11 @@ endif
 The GNU Make Manual [touches](https://www.gnu.org/software/make/manual/make.html#Automatic-Prerequisites) on how to automatically generate the dependencies of your object files from the source file's `#include`s. The example rule given in the manual is a bit complicated. Here's the rules I use:
 
 ``` make
+dependencies = $(objects:.o=.d)
+
 # Have the compiler output dependency files with make targets for each
 # of the object files. The `MT` option specifies the dependency file
 # itself as a target, so that it's regenerated when it should be.
-dependencies = $(objects:.o=.d)
 %.d: %.c
 	$(CC) -M -MT '$(@:.d=.o) $@' $(CPPFLAGS) $< > $@
 
@@ -209,7 +210,7 @@ This probably goes without saying for most C programmers, but I figured I should
 
 In fact, [GCC will detect include guards](http://gcc.gnu.org/onlinedocs/cppinternals/Guard-Macros.html), and won't read such files a second time. I don't know if other compilers perform this optimization.
 
-I don't think it's a good idea to require your users include the dependencies of their header files. Your header file's dependencies shouldn't really be considered "public". It would enforce the rule "don't depend on what your header files include", but it falls apart as soon as header files are using things you don't need, like `FILE` or `bool`. Users shouldn't have to care about that.
+I don't think it's a good idea to require your users include the dependencies of your header files. Your header file's dependencies shouldn't really be considered "public". It would enforce the rule "don't depend on what your header files include", but it falls apart as soon as header files are using things you don't need, like `FILE` or `bool`. Users shouldn't have to care about that if they don't need it themselves.
 
 So, always write include guards, and make your users' lives easy.
 
@@ -225,7 +226,7 @@ Global variables are just hidden arguments to all the functions that use them. T
 
 Mutable global variables are especially evil and should be avoided at all costs. Conceptually, a global variable assignment is a bunch of `longjmp`s to set hidden, static variables. Yuck.
 
-The only circumstance where a global variable is excusable, in my opinion, is if it's `const` and only referred to in `main`. Otherwise, you should design your functions to be controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This always leads to better code and better design.
+You should always try to design your functions to be completely controllable by their arguments. Even if you have a variable that will have to be passed around to lots of a functions - if it affects their computation, it should be a argument or a member of a argument. This *always* leads to better code and better design.
 
 For example, removing global variables and constants from my [Trie.c](https://github.com/mcinglis/trie.c) project resulted in the `Alphabet` struct, which lets users tune the storage structure to their needs. It also opened up some really cool dynamic abilities, like swapping alphabets on the fly for the same trie.
 
@@ -245,7 +246,7 @@ If a function or global variable isn't exported in the header, declare it as `st
 
 `const` improves compile-time correctness. It isn't only for documenting read-only pointers. It should be used for every read-only variable and pointee.
 
-`const` helps the reader *immensely* in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air; the reader is forced to comprehend the entire scope to understand what is and isn't being modified. If you consistently use `const`, your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it *will* be changed at some point.
+`const` helps the reader *immensely* in understanding a piece of functionality. If they can look at an initialization and be sure that that value won't change throughout the scope, they can reason about the rest of the scope much easier. Without `const`, everything is up in the air; the reader is forced to comprehend the entire scope to understand what is and isn't being modified. If you consistently use `const`, your reader will begin to trust you, and will be able to assume that a variable that isn't qualified with `const` is a signal that it will be changed at some point in the scope.
 
 Using `const` everywhere you can also helps you, as a developer, reason about what's happening in the control flow of your program, and where mutability is spreading. It's amazing, when using `const`, how much more helpful the compiler is, especially regarding pointers and pointees. You always want the compiler on your side.
 
@@ -280,7 +281,7 @@ bool Trie_has( Trie const, char const * const );
 bool Trie_has( Trie, char const * );
 ```
 
-Unfortunately, C can't handle conversions from non-const pointee-pointees to const pointee-pointees, I'd recommend against making pointee-pointees `const`. That is, each variable should only be defined with a maximum of two `const` qualifiers - any more, and you'll be qualifying pointee-pointees, which is problematic.
+Unfortunately, C can't handle conversions from non-const pointee-pointees to const pointee-pointees. Thus, I recommend against making pointee-pointees `const`.
 
 ``` c
 char ** const xss = malloc( 3 * sizeof( char * ) );
@@ -291,11 +292,15 @@ char const * const * const yss = xss;
 char * const * const zss = xss;
 ```
 
-Only `const` the *pointees* of struct members, not the struct members themselves. For example, if any of your struct members should be assignable to a string literal, give that member the type `char const *`. Qualifying the members with `const` [hurts](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) more than helps. Users can just make their own variables `const` if they need that.
+Carefully consider if it's actually helpful to `const` the pointees of your struct fields. It can often harm flexibility, while providing few benefits. One situation where it's justified is for fields that should be assignable to string literals - then, give those fields the type `char const *`. This prevents you and your users from modifying the underlying string literals, which would prompt a segmentation fault.
 
-I generally only make return-type pointees `const` if I need to, and after careful consideration. This can harm the flexibility of your interface, so watch out.
+But, again - consider it carefully. Declaring a struct field as `char const *` will make it harder to work with dynamic-length strings, which need to be freed.
 
-Finally, never use typecasts or pointers to get around `const` qualifiers. If the variable isn't constant, don't make it one.
+While it can be reasonable to `const` the *pointees* of struct fields, it's never beneficial to `const` the struct fields themselves. For example, [it makes it painful to `malloc`](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) a value of that struct. If it really makes sense to stop the fields from changing beyond their original values, just define invariants that enforce whatever qualities you need. Also, you and your users can just define individual variables of that struct as `const` to get the same effect.
+
+Only make return-type pointees `const` if you need to, and after careful consideration. I've found that when the compiler is hinting to add a `const` to a return type, it often means that a `const` should be *removed* somewhere; not added. It can harm flexibility, so be careful.
+
+Finally, never use typecasts or pointers to get around `const` qualifiers - at least, for things you control. If the variable isn't constant, don't make it one.
 
 
 
@@ -314,14 +319,22 @@ Because of this rule, you should always pad the `*` type qualifier with spaces.
 
 
 
-#### Don't write parameter names in function prototypes if they just repeat the type
+#### Don't write argument names in function prototypes if they just repeat the type
+
+But, always declare the name of any pointer argument to communicate if it's a pointer-to-array (plural name) or a pointer-to-value (singular name).
 
 ``` c
 // Bad
-void Trie_add( Trie const * trie, char const * string );
+bool Trie_has( Trie trie, char const * string );
 
 // Good
+bool Trie_has( Trie, char const * string );
+
+// Bad - are these pointers for nullity or arrays?
 void Trie_add( Trie const *, char const * );
+
+// Good
+void Trie_add( Trie const * trie, char const * string );
 ```
 
 
@@ -335,7 +348,7 @@ printf( "%f\n", ( float )333334126.98 );    // 333334112.000000
 printf( "%f\n", ( float )333334125.31 );    // 333334112.000000
 ```
 
-For the vast majority of applications nowadays, space isn't an issue, but floating-point errors can still pose a threat. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. Unless you have a very specific reason to use `float`s, use `double`s instead. Don't use `float`s "because they will be faster", because without benchmarks, you can't know if it actually makes any discernible difference. Finish development, then perform benchmarks to identify the choke-points, then use `float`s in those areas, and see if it actually helps. Before then, prioritize everything else over performance. Don't prematurely optimize.
+For the vast majority of applications nowadays, space isn't an issue, but floating-point errors can still pose a threat. It's much harder for numeric drift to cause problems for `double`s than it is for `float`s. Unless you have a very specific reason to use `float`s, use `double`s instead. Don't use `float`s "because they will be faster", because without benchmarks, you can't know if it actually makes any discernible difference. Finish development, then perform benchmarks to identify the choke-points, then use `float`s in those areas, and see if it actually helps. Before then, prioritize everything else over any supposed performance improvements. Don't prematurely optimize.
 
 
 
@@ -951,17 +964,17 @@ If the would-be pointer shouldn't be NULL, isn't an array of an unknown size, an
 
 
 
-#### Only take pointer arguments for modifications, or for nullity
+#### Only use pointer arguments for nullity, arrays or modifications
 
 This rule helps readers reason about where values are being modified. It also improves the safety by making it impossible for functions that shouldn't receive `NULL` from receiving `NULL` -- this is a huge benefit over languages that require pass-by-reference semantics (and thus `NULL` as a valid value almost everywhere).
 
 When you're reading a codebase that sticks to this rule, and its functions and types are maximally decomposed, you can often tell what a function does just by reading its prototype. This is in stark contrast to projects that pass pointers everywhere: you have no certainty anywhere.
 
-In C, you can pass struct values to functions, and by [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), they'll be copied into the frame of the receiving function. The original struct can't be modified by that function (although it can return the modification). Like `const`, using this feature wherever you can makes it easier for your readers to reason about your program.
+In C, you can pass struct values to functions, and by [pass-by-value semantics](http://c-faq.com/ptrs/passbyref.html), they'll be copied into the stack frame of the receiving function. The original struct can't be modified by that function (although it can return the modification). Like `const`, using this feature wherever you can makes it easier for your readers to reason about your program.
 
-Defining a "modification" gets tricky when you introduce structs with pointer members (usually pointer-to-arrays - most other pointers usually aren't needed). I consider a modification to be something that affects the struct itself, or the pointees of the struct.
+Defining a "modification" gets tricky when you introduce structs with pointer members. I consider a modification to be something that affects the struct itself, or the pointees of the struct.
 
-If a struct will be "modified" by a function, have that function accept a pointer of that struct even if it doesn't need to. This saves the readers from having to trawl through and memorize every relevant struct definition, to be aware of which structs have pointer members.
+If a struct will be "modified" by a function, have that function accept a pointer of that struct even if it doesn't need to. This saves the readers from having to find and memorize every relevant struct definition, to be aware of which structs have pointer members.
 
 ``` c
 typedef struct {
