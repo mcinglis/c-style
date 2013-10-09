@@ -823,9 +823,13 @@ My university faculty is [pretty big](http://www.itee.uq.edu.au/sse/projects) on
 
 #### Use `assert` everywhere your program would fail otherwise
 
-Good software fails fast. Assertion errors are much more informative than segmentation faults. If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between arguments.
+Write assertions to meaningfully crash your program before it does something stupid, like deleting data, or to prevent a security vulnerability, or just to prevent a segmentation fault. Good software fails fast.
 
-That said, don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise. If user input can invalidate an assertion, that's a bug. You should be filtering it before-hand, and reporting the errors in a readable fashion for your users. Assertions are there to meaningfully crash your program before it does something stupid. (like deleting data, or having a security vulnerability)
+If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between arguments.
+
+That said, never depend on assertions for correctness. Your program should still work correctly when assertions are disabled.
+
+Don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise. If user input (not code) can invalidate an assertion, that's a bug. You should be filtering it before-hand, and reporting the errors in a readable fashion for your users.
 
 Don't assert struct invariants in functions, because they're the caller's responsibility.
 
