@@ -837,7 +837,6 @@ for ( int i = 0; str[ i ] != '\0'; i += 1 );
 
 
 
-
 #### Document your struct invariants, and provide invariant checkers
 
 > An **invariant** is a condition that can be relied upon to be true during execution of a program.
@@ -917,7 +916,7 @@ typedef struct Person {
 } Person;
 ```
 
-TitleCase names should be exclusively used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability when the struct definition becomes large.
+TitleCase names should be used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability when the struct definition becomes large.
 
 I don't typedef structs used for named arguments (see below), however, because the TitleCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
 
@@ -1120,35 +1119,9 @@ Fruit watermelon = { .color = "green", .size = "large" };
 
 
 
-#### Prefer `_new()` functions with named arguments to struct literals
-
-Providing `_new()` functions to users gives you more flexibility later on. When a "required" member is added to a struct, all previous `_new()` calls will become errors, whereas struct literals without that required member will still compile:
-
-``` c
-// Suppose we add a required (i.e. non-null) `age` field to the
-// `Character` struct, and update the `_new()` function accordingly.
-
-Character Character__new( char * name, int age, Character options );
-
-#define Character_new( name, age, ... ) \
-    Character__new( name, age, ( Character ){ __VA_ARGS__ } )
-
-// Then old `_new()` calls are now compilation errors:
-Character a = Character_new( "Arthur", .dexterity = 3 );
-
-// But old struct literal definitions still compile:
-Character b = { .name = "Brock", .strength = 5 };
-```
-
-Still, simplicity can often be more important than maintainability. I'll still use struct literals for trivial structs, or well-defined structs which I'm sure will require no other required arguments. Also, functions can't be called when defining global variables: you have to use struct literals then.
-
-`_new()` function calls become really hard to read when you have more than a few required arguments. I haven't worked out a way to have required, named arguments with compile-time correctness other than to have comments beside the arguments. In these situations, I'll usually opt to sacrifice safety for readability, and just accept an option struct. Lots of required arguments is often a code-smell, anyway.
-
-
-
 #### If you're providing new and free functions only for a struct member, allocate memory for the whole struct
 
-If you're providing `Foo_new` and `Foo_free` methods only so you can allocate memory for a member of the `Foo` struct, you've lost the benefits and safety of automatic storage. You may as well have the new and free methods allocate memory for the whole struct, so users can pass it outside the scope it was defined (without dereferencing it), if they want.
+If you're providing `Foo_new` and `Foo_free` functions only so you can allocate memory for a member of the `Foo` struct, you've lost the benefits and safety of automatic storage. You may as well have the new and free methods allocate memory for the whole struct, so users can pass it outside the scope it was defined (without dereferencing it), if they want.
 
 
 
@@ -1174,7 +1147,7 @@ City City_with_state( City c, char const * const state )
     return c;
 }
 
-City c = City_new( "Vancouver" );
+City c = { .name = "Vancouver" };
 c = City_with_state( "BC" );
 printf( "%s is in %s, did you know?\n", c.name, c.country );
 ```
@@ -1182,8 +1155,8 @@ printf( "%s is in %s, did you know?\n", c.name, c.country );
 But you should always provide an interface that allows for [declarative programming](https://en.wikipedia.org/wiki/Declarative_programming):
 
 ``` c
-City const c = City_new( "Boston", .state = "MA" );
-printf( "I think I'm going to %s, \n"
+City const c = City_new( .name = "Boston", .state = "MA" );
+printf( "I think I'm going to %s,\n"
         "Where no one changes my state\n", c.name, c.country );
 ```
 
@@ -1191,7 +1164,7 @@ printf( "I think I'm going to %s, \n"
 
 #### C isn't object-oriented, and you shouldn't pretend it is
 
-C doesn't have classes, methods, inheritance, (nice) object encapsulation, or polymorphism. Not to be rude, but: **deal with it**. C might be able to achieve crappy, complicated imitations of those things, but it's just not worth it.
+C doesn't have classes, methods, inheritance, (nice) object encapsulation, or real polymorphism. Not to be rude, but: **deal with it**. C might be able to achieve crappy, complicated imitations of those things, but it's just not worth it.
 
 As it turns out, C already has an entirely-capable language model. In C, we define data structures, and we define functionality that uses combinations of those data structures. Data and functionality aren't intertwined in complicated contraptions, and this is a good thing.
 
