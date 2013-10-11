@@ -585,13 +585,81 @@ return hungry == true
 
 
 
-#### Use `if`s instead of `switch`
+#### Never use `switch`
 
 The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Worse, a missing `break` will still compile: this tripped me up all the time when I used `switch`. Also, `case` values have to be an integral constant expression, so they can't match against another variable. This discourages extractions of logic to functions. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
 
-`if` has none of these issues, is simpler, and easier to change.
+If you need to map different constant values to behavior, like:
 
-Even if you need the fall-through behavior of `switch`, like:
+``` c
+switch ( x ) {
+    case A:
+        do_something_for_a( x, y, z );
+        break;
+    case B:
+        do_something_for_b( x, y, z ):
+        break;
+    default:
+        error( x, y, z );
+        break;
+}
+```
+
+A more explicit, testable and reusable approach is to define a function that uses ternary expressions to return a function pointer of the right type:
+
+``` c
+action_fn get_x_action( x ) {
+    return ( x == A ) ? do_something_for_a
+         : ( x == B ) ? do_something_for_b
+         : error;
+}
+
+action_fn action = get_x_action( x );
+action( x, y, z );
+
+// or just:
+get_x_action( x )( x, y, z );
+```
+
+You should do a similar thing if you need to map between two sets of uncorrelated constant values, like:
+
+``` c
+// Bad
+switch ( x ) {
+    case A: return X;
+    case B: return Y;
+    case C: return Z;
+    default: return ERR;
+}
+
+// Good
+return ( x == A ) ? X
+     : ( x == B ) ? Y
+     : ( x == C ) ? Z
+     : ERR;
+```
+
+Don't use a `switch` where you can just use a boolean expression:
+
+``` c
+// Bad
+switch ( x ) {
+    case A: case B: case C:
+        return true;
+    default:
+        return false;
+}
+
+// Good
+return x == A || x == B || x == C;
+
+// Or, if the names are longer, this usually reads better:
+return t == JSON_TYPE_null
+    || t == JSON_TYPE_boolean
+    || t == JSON_TYPE_number;
+```
+
+If you need the fall-through behavior of `switch`, like:
 
 ``` c
 switch ( x ) {
@@ -605,7 +673,7 @@ switch ( x ) {
 }
 ```
 
-The equivalent `if` is much more informative and readable:
+The equivalent `if` is much more readable and it's obvious what's going to happen and why. The "B stuff" actually applies when `x == A` too, and this is explicitly declared when you use an `if`.
 
 ``` c
 if ( x == A ) {
@@ -619,7 +687,7 @@ if ( x == A || x == B ) {
 }
 ```
 
-The `if` equivalent is much more obvious about what's going to happen and why. The "B stuff" block actually applies when `x == A` too, and this is much more obvious in the `if` version.
+You should only need to use `switch` for performance tuning (once you've done benchmarks to identify hotspots!). Otherwise, there's always a safer, shorter, more testable and reusable alternative.
 
 
 
@@ -940,7 +1008,7 @@ These criticisms apply equally to struct typedefs, as advised above. In my opini
 
 Pointer typedefs are particularly nefarious because they exclude the users from qualifying the pointee with `const`. This is a huge loss, for reasons enumerated in other rules.
 
-Function pointer typedefs are understandable when you're repeating the function type in many different locations. I'll only consider a function pointer `typedef` after three repetitions of the type. Before you do `typedef` a function pointer, consider if it actually helps people understand what that type represents.
+Function pointer typedefs are justified when you need to declare a function that returns that function pointer; the syntax without a typedef is unbearable. I'll also typedef a function pointer if the type is being repeated in many locations (more than three, or so). Some people like to typedef all function pointers, but this often masks what's going on and what's expected. Carefully consider if a function pointer typedef will actually help people understand what that type represents.
 
 
 
