@@ -1144,14 +1144,14 @@ struct run_server_options {
 };
 
 #define run_server( ... ) \
-    _run_server( ( struct run_server_options ){ \
+    run_server_( ( struct run_server_options ){ \
         /* default values */ \
         .port = "45680", \
         .backlog = 5, \
         __VA_ARGS__ \
     } )
 
-int run_server( struct run_server_options opts )
+int run_server_( struct run_server_options opts )
 {
     ...
 }
