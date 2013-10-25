@@ -291,11 +291,11 @@ char const * const * const yss = xss;
 char * const * const zss = xss;
 ```
 
-Carefully consider if it's actually helpful to `const` the pointees of your struct fields. It can often harm flexibility, while providing few benefits. One situation where it's justified is for fields that should be assignable to string literals - then, give those fields the type `char const *`. This prevents you and your users from modifying the underlying string literals, which would prompt a segmentation fault.
+If you can `const` the pointees of your *internal* structs, do. Non-constant pointees can cause mutability to needlessly spread, which makes it harder to glean information from the remaining `const` qualifiers. Because you have total control over your internal structs, if you need to remove the `const` in future, you can.
 
-But, again - consider it carefully. Declaring a struct field as `char const *` will make it harder to work with dynamic-length strings, which need to be freed.
+You usually shouldn't `const` the pointees of your external structs. Flexibility is important when they're part of the public interface. Consider it carefully. An exception to this that I often make is for fields are best assignable to string literals, such as `error` fields. In this case, a `char const *` type prevents you and your users from modifying the underlying string literals, which would prompt a segmentation fault.
 
-While it can be reasonable to `const` the *pointees* of struct fields, it's never beneficial to `const` the struct fields themselves. For example, [it makes it painful to `malloc`](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) a value of that struct. If it really makes sense to stop the fields from changing beyond their original values, just define invariants that enforce whatever qualities you need. Also, you and your users can just define individual variables of that struct as `const` to get the same effect.
+While it can be reasonable to `const` the *pointees* of struct fields, it's never beneficial to `const` the struct fields themselves. For example, [it makes it painful to `malloc`](http://stackoverflow.com/questions/9691404/how-to-initialize-const-in-a-struct-in-c-with-malloc) a value of that struct. If it really makes sense to stop the fields from changing beyond their original values, just define [invariants](#document-your-struct-invariants-and-provide-invariant-checkers) that enforce whatever qualities you need. Also, you and your users can just define individual variables of that struct as `const` to get the same effect.
 
 Only make return-type pointees `const` if you need to, and after careful consideration. I've found that when the compiler is hinting to add a `const` to a return type, it often means that a `const` should be *removed* somewhere; not added. It can harm flexibility, so be careful.
 
@@ -437,6 +437,10 @@ if ( x == 0 );
 
 // Fine; technically an assignment within an expression
 a = b = c;
+
+while ( --atoms > 0 );          // Bad
+while ( atoms -= 1,             // Good
+        atoms > 0 );
 
 // Fine; there's no better way, without repetition
 int w;
@@ -585,7 +589,7 @@ return hungry == true
 
 
 
-#### Don't use `switch`
+#### Don't use `switch`, and avoid complicated conditionals
 
 The `switch` fall-through mechanism is error-prone, and you almost never want the cases to fall through anyway, so the vast majority of `switch`es are longer than the `if` equivalent. Worse, a missing `break` will still compile: this tripped me up all the time when I used `switch`. Also, `case` values have to be an integral constant expression, so they can't match against another variable. This discourages extractions of logic to functions. Furthermore, any statement inside a `switch` can be labelled and jumped to, which fosters highly-obscure bugs if, for example, you mistype `defau1t`.
 
@@ -593,15 +597,15 @@ If you need to map different constant values to behavior, like:
 
 ``` c
 switch ( x ) {
-    case A:
-        do_something_for_a( x, y, z );
-        break;
-    case B:
-        do_something_for_b( x, y, z ):
-        break;
-    default:
-        error( x, y, z );
-        break;
+case A:
+    do_something_for_a( x, y, z );
+    break;
+case B:
+    do_something_for_b( x, y, z ):
+    break;
+default:
+    error( x, y, z );
+    break;
 }
 ```
 
@@ -750,7 +754,7 @@ bool Trie_has( Trie const trie, char const * const string )
 
 It can often help the readability of your code if you replace variables that are only assigned to constant expressions, with those expressions.
 
-Consider the `Trie_has` example above - the `word[ 0 ]` expression is repeated twice. It would be harder to read and follow if we inserted an extra line to define a `char` variable. It's just another thing that the readers would have to keep in mind. Many programmers of other languages wouldn't think twice about repeating an array access.
+Consider the `Trie_has` example above - the `string[ 0 ]` expression is repeated twice. It would be harder to read and follow if we inserted an extra line to define a `char` variable. It's just another thing that the readers would have to keep in mind. Many programmers of other languages wouldn't think twice about repeating an array access.
 
 
 
@@ -913,6 +917,8 @@ For any function that takes a struct (or a pointer), all invariants of that stru
 
 Provide an "invariants" comment section at the end of your struct definition, and list all the invariants you can think of. Also, implement `is_valid` and `assert_valid` functions for users to check those assertions on values of the structs they create on their own. These functions are crucial to being able to trust that the invariants hold for values of that struct. Without them, how will the users know?
 
+[Here's an example](https://github.com/mcinglis/trie.c/blob/master/alphabet.h#L10) of a struct invariant.
+
 My university faculty is [pretty big](http://www.itee.uq.edu.au/sse/projects) on software correctness. It certainly rubbed off on me.
 
 
@@ -923,13 +929,11 @@ Write assertions to meaningfully crash your program before it does something stu
 
 If a function is given a pointer it will dereference, assert that it's not null. If it's given an array index, assert that it's within bounds. Assert for any consistency that you need between arguments.
 
-That said, never depend on assertions for correctness. Your program should still work correctly when assertions are disabled.
+That said, never depend on assertions for correctness. Your program should still work correctly when the assertion lines are removed.
 
 Don't mistake assertions for error-reporting. Assert things that you won't bother to check otherwise. If user input (not code) can invalidate an assertion, that's a bug. You should be filtering it before-hand, and reporting the errors in a readable fashion for your users.
 
 Don't assert struct invariants in functions, because they're the caller's responsibility.
-
-Don't repeat assertions. If `foo` first calls `bar`, and `bar` first calls `baz`, and all three functions need the `widget` argument to be non-null, then just assert that `widget` isn't null in `baz`, and treat that assertion as transitive to `bar`, and thus to `foo`. My rule is, as titled, "only assert where it will fail otherwise". This means if another assert already has your back, don't sweat it.
 
 
 
@@ -949,8 +953,7 @@ I'd advise against using variable-length arrays in C99, too. You have to [check 
 
 #### Avoid `void *` because it harms type safety
 
-`void *` is useful for polymorphism, but polymorphism is almost never as important as type safety. Void pointers are indispensable in many situations, but you should consider other, safer alternatives first - like using unions, or the preprocessor.
-
+`void *` is useful for polymorphism, but polymorphism is almost never as important as type safety. Void pointers are indispensable in many situations, but you should consider other, safer alternatives first.
 
 
 #### If you have a `void *`, assign it to a typed variable as soon as possible
@@ -959,9 +962,49 @@ Just like working with uninitialized variables is dangerous, working with void p
 
 
 
+#### Use C11's anonymous structs and unions rather mutually-exclusive fields
+
+If only certain fields of your struct should be set when certain other fields have certain values, use C11's anonymous structs and unions:
+
+``` c
+enum AUTOMATON_TYPE {
+    AUTOMATON_TYPE_char,
+    AUTOMATON_TYPE_split,
+    AUTOMATON_TYPE_match
+};
+#define NUM_AUTOMATON_TYPES ( 3 )
+
+typedef struct Automaton {
+    enum AUTOMATON_TYPE type;
+    union {
+        struct { // type = char
+            char c;
+            struct Automaton * next;
+        };
+        struct { // type = split
+            struct Automaton * left;
+            struct Automaton * right;
+        };
+    };
+} Example;
+```
+
+This is much more explicit and obvious than something like:
+
+``` c
+typedef struct Automaton {
+    enum AUTOMATON_TYPE type;
+    char c;
+    struct Automaton * left;
+    struct Automaton * right;
+} Automaton;
+```
+
+
+
 #### Don't typecast unless you have to (you probably don't)
 
-If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. There are only three reasons to use typecasts:
+If it's valid to assign a value of one type to a variable of another type, then you don't have to cast it. You should only use typecasts when you need to, like:
 
 - performing true division (not integer division) of `int` expressions
 - making an array index an integer, but you can do this with assignment anyway
@@ -984,7 +1027,7 @@ typedef struct Person {
 } Person;
 ```
 
-TitleCase names should be used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because it helps readability when the struct definition becomes large.
+TitleCase names should be used for structs so that they're recognizable without the `struct` prefix. They also let you name struct variables as the same thing as their type without names clashing (e.g. a `banana` of type `Banana`). You should always define the struct name, even if you don't need to, because you might need to later (e.g. to use as an incomplete type). Also, having a name at the top helps readability when comments are inserted, or the struct definition becomes large.
 
 I don't typedef structs used for named arguments (see below), however, because the TitleCase naming would be weird. Anyway, if you're using a macro for named arguments, then the typedef is unnecessary and the struct definition is hidden.
 
@@ -1038,7 +1081,6 @@ enum SUIT {
     SUIT_clubs,
     SUIT_spades
 };
-
 #define NUM_SUITS 4
 ```
 
@@ -1112,7 +1154,7 @@ Sticking to this rule means ditching incomplete struct types, but I don't really
 
 
 
-#### Always prefer to return a value rather than modifying pointers
+#### Prefer to return a value rather than modifying pointers
 
 This encourages immutability, cultivates [pure functions](https://en.wikipedia.org/wiki/Pure_function), and makes things simpler and easier to understand. It also improves safety by eliminating the possibility of a `NULL` argument.
 
@@ -1124,7 +1166,7 @@ void Drink_mix( Drink * const drink, Ingredient const ingr ) {
     drink->alcohol += ingr.alcohol;
 }
 
-// Good: immutability rocks, pure functions everywhere
+// Good: immutability rocks, pure and safe functions everywhere
 Drink Drink_mix( Drink const drink, Ingredient const ingr ) {
     return ( Drink ){
         .color = Color_blend( drink.color, ingr.color ),
@@ -1132,6 +1174,8 @@ Drink Drink_mix( Drink const drink, Ingredient const ingr ) {
     };
 }
 ```
+
+This isn't always the best way to go, but it's always worth your consideration.
 
 
 
