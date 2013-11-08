@@ -32,9 +32,19 @@ All of the standardized `str` functions are hard to use correctly, and thus are 
 
 The advice below is for your own information, if you choose to use the `str` functions. **Be very careful.**
 
-### Copying strings: `strcpy()` and `strncpy()`
+### Duplicating and copying strings
 
-From the Linux man-pages:
+If you're creating an empty buffer, and copying an existing string into that buffer, you're duplicating it. If you're copying an existing string into an existing buffer, you're copying it. Carefully consider what you're doing, because duplication is far less error-prone than copying.
+
+``` c
+char * const copy = strndup( src, MAX_COPY_SIZE );
+...
+free( copy );
+```
+
+If `src` is a string whose size is controlled by your program, you can use `strdup`. If `src` could come from an external computer (consider this possibility carefully), use `strndup` so clients can't get you to allocate all your memory.
+
+On the copying functions, `strcpy() and `strncpy(), the Linux man-pages say:
 
 > If the destination string of a `strcpy()` is not large enough, then anything might happen. Overflowing fixed-length string buffers is a favorite cracker technique for taking complete control of the machine. Any time a program reads or copies data into a buffer, the program first needs to check that there's enough space.
 
@@ -86,19 +96,6 @@ int copy_string( char * const dest, char const * const src, size_t const n )
     return max;
 }
 ```
-
-
-``` c
-// Another way to protect strcpy() against overflows is to manually
-// allocate space as required:
-char * const dest = malloc( strlen( src ) + 1 );
-strcpy( dest, src );
-```
-
-* http://the-flat-trantor-society.blogspot.it/2012/03/no-strncpy-is-not-safer-strcpy.html
-* http://yarchive.net/comp/linux/strncpy.html
-
-> Better alternatives are OpenBSD's strlcat, or better(!!!) something like Microsoft' strcat_s/strncat_s -- it's better in that it returns wether an overflow occurred, so you can't make typos comparing to the wrong size; the downsize is that by default it aborts on overflow...
 
 
 ### Always use `-fstack-protector-strong` to enable stack-smashing protection.
