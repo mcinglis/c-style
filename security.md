@@ -2,7 +2,9 @@
 
 This guide is licensed under the [Creative Commons Attribution-ShareAlike](/license.md) license, so I'm not liable for anything you do with this.
 
-**Warning:** these notes are unfinished and should not be depended on.
+**Warning:** these notes are unfinished and should not be depended on. Pull requests and issues are very welcome.
+
+Always use `-fstack-protector-strong` to enable stack-smashing protection.
 
 ### Never use `gets`; use `fgets` instead
 
@@ -25,16 +27,19 @@ int main( void ) {
 
 ## Classic string functions
 
-All of the standardized `str` functions are hard to use correctly, and thus are extremely dangerous. Until C11's Annex K functions are available, you should use a managed language for processing strings.
+All of the standardized `str` functions are very hard to use correctly, and thus are extremely dangerous. C11's Annex K functions are a huge improvement, but they aren't yet available in any C standard library implementation.
 
 * [Use the bounds-checking interfaces for remediation of existing string manipulation code](https://www.securecoding.cert.org/confluence/display/seccode/STR07-C.+Use+the+bounds-checking+interfaces+for+remediation+of+existing+string+manipulation+code)
 * [Functions that read or write to or from an array should take an argument to specify the source or target size](https://www.securecoding.cert.org/confluence/display/seccode/API02-C.+Functions+that+read+or+write+to+or+from+an+array+should+take+an+argument+to+specify+the+source+or+target+size)
 
-The advice below is for your own information, if you choose to use the `str` functions. **Be very careful.**
+You should always **be very careful** when processing strings in C.
+
 
 ### Duplicating and copying strings
 
 If you're creating an empty buffer, and copying an existing string into that buffer, you're duplicating it. If you're copying an existing string into an existing buffer, you're copying it. Carefully consider what you're doing, because duplication is far less error-prone than copying.
+
+To duplicate a string `src`:
 
 ``` c
 char * const copy = strndup( src, MAX_COPY_SIZE );
@@ -42,9 +47,9 @@ char * const copy = strndup( src, MAX_COPY_SIZE );
 free( copy );
 ```
 
-If `src` is a string whose size is controlled by your program, you can use `strdup`. If `src` could come from an external computer (consider this possibility carefully), use `strndup` so clients can't get you to allocate all your memory.
+If the length of `src` is controlled by your program, you can use `strdup`. If `src` could come from an external computer (consider this possibility carefully), use `strndup` so clients can't get you to allocate all your memory.
 
-On the copying functions, `strcpy() and `strncpy(), the Linux man-pages say:
+On the copying functions, `strcpy()` and `strncpy()`, the Linux man-pages say:
 
 > If the destination string of a `strcpy()` is not large enough, then anything might happen. Overflowing fixed-length string buffers is a favorite cracker technique for taking complete control of the machine. Any time a program reads or copies data into a buffer, the program first needs to check that there's enough space.
 
@@ -60,7 +65,7 @@ if ( strlen( src ) < dest_size ) {
 
 If you don't need to prompt an error if `dest` can't contain all of `src`, and instead just want to copy over as many bytes as you can, you could use `strncpy( src, dest n )` to copy at most `n` bytes into `dest`. There are two common downfalls with `strncpy`, though:
 
-1. If `strlen( src ) >= n` (that is, if there's no null byte in the first `n` bytes of `src`), `dest` won't null-terminated.
+1. If `strlen( src ) >= n` (that is, if there's no null byte in the first `n` bytes of `src`), `dest` won't be null-terminated.
 2. If `strlen( src ) < n` (that is, if `src` is shorter than `n`), there will be `n - strlen( src )` null bytes written into `dest` so that `n` bytes are written in total. This can slow your program down if `n` is large and `src` is small, and the `strncpy` operation is in an execution hot-spot.
 
 `strncpy` should only be used if you need the second behavior (which is rare; consider alternative approaches like initialization to `{ 0 }` or `calloc`). If you need the first behavior, just use `memcpy( dest, src, n )` which explicitly communicates what you're doing (i.e. byte-agnostic copying). If you are going to use `strncpy`, you should write a wrapper function to insert the null-terminator in case `src` is longer than `n`:
@@ -98,7 +103,7 @@ int copy_string( char * const dest, char const * const src, size_t const n )
 ```
 
 
-### Always use `-fstack-protector-strong` to enable stack-smashing protection.
+### Concatenation
 
 
 ## Format string vulnerabilities
