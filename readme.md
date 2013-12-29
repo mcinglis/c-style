@@ -338,9 +338,9 @@ For the vast majority of applications nowadays, space isn't an issue, but floati
 
 
 
-#### Declare variables when they're needed
+#### Declare variables as late as possible
 
-This reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than just declaration (`int x;`). Initializing a variable usually often means you can `const` it, too.
+Declaring variables where they're used reminds the reader of the type they're working with. It also suggests where to extract a function to minimize variable scope. Furthermore, it informs the reader as to where each variables are relevant. Declaring variables when they're needed almost always leads to initialization (`int x = 1;`), rather than just declaration (`int x;`). Initializing a variable usually often means you can `const` it, too.
 
 To me, all declarations (i.e. non-initializations) are shifty.
 
