@@ -915,7 +915,7 @@ Repeating your `assert` calls improves the assertion error reporting. If you cha
 
 #### Don't use variable-length arrays
 
-Variable-length arrays were introduced in C99 as a way to define dynamic-length arrays with automatic storage; no need for `malloc`. For a few reasons, they've been made optional in C11. Thus, if you want to use variable-length arrays in C11, you'll have to write to write the `malloc` version anyway. Instead, just don't use variable-length arrays.
+Variable-length arrays were introduced in C99 as a way to define dynamic-length arrays with automatic storage; no need for `malloc`. For a few reasons, they've been made optional in C11. Thus, if you want to use variable-length arrays in C11, you'll have to write the `malloc` version anyway. Instead, just don't use variable-length arrays.
 
 I'd advise against using variable-length arrays in C99, too. First, you have to [check the values](https://www.securecoding.cert.org/confluence/display/seccode/ARR32-C.+Ensure+size+arguments+for+variable+length+arrays+are+in+a+valid+range) that control their size to protect against stack-smashing. Second, they can't be initialized. Finally, avoiding them will make it easier to upgrade to newer standards later on.
 
