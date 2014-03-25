@@ -21,7 +21,7 @@ So, I'm certain I'm wrong on even more points. This is a constant work-in-progre
 No excuses here. Always develop and compile with warnings on. It turns out, though, that `-Wall` and `-Wextra` actually don't enable "all" warnings. There are a few others that can be really helpful:
 
 ``` make
-CFLAGS += -Wall -Wextra -Wpedantic \
+CFLAGS += -Wall -Wextra -pedantic \
           -Wformat=2 -Wno-unused-parameter -Wshadow \
           -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
           -Wredundant-decls -Wnested-externs -Wmissing-include-dirs
