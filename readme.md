@@ -1,3 +1,12 @@
+> [!WARNING]  
+> **2026 January**: This document is very old, and I no longer endorse it. I wrote it without the benefit of the perspective and experience that I have now.
+> 
+> Better resources for C coding style and toolchain configuration are:
+>
+> - [SEI CERT C Coding Standard](https://wiki.sei.cmu.edu/confluence/spaces/c/pages/87152044/SEI+CERT+C+Coding+Standard)
+> - [OpenSSF's Compiler Options Hardening Guide for C and C++](https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html)
+> - [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
+
 # C Style
 
 These are my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. I follow a few rules religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed because [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization).
