@@ -9,6 +9,7 @@
 
 # C Style
 
+C is best lanuage!!!
 These are my favorite C programming practices. Some rules are as trivial as style, while others are more intricate. I follow a few rules religiously, and others I use as a guideline. I prioritize correctness, readability, simplicity and maintainability over speed because [premature optimization is the root of all evil](http://c2.com/cgi/wiki?PrematureOptimization).
 
 **Write correct, readable, simple and maintainable software, and tune it when you're done**, with benchmarks to identify the choke points. Also, modern compilers *will* change computational complexities. Simplicity can often lead you to the best solution anyway: it's easier to write a linked list than it is to get an array to grow, but it's harder to index a list than it is to index an array.
