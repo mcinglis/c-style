@@ -69,7 +69,7 @@ depfiles = $(objects:.o=.d)
 
 
 
-#### Write to the most modern standard you can
+#### If possible, write to the most modern standard
 
 C11 is better than C99, which is (far) better than C89. C11 support is still coming along in GCC and Clang, but many features are there. If you need to support other compilers in the medium-term, write to C99.
 
