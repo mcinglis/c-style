@@ -322,7 +322,7 @@ Because of this rule, you should always pad the `*` type qualifier with spaces.
 But, always declare the name of any pointer argument to communicate if it's a pointer-to-array (plural name) or a pointer-to-value (singular name).
 
 ``` c
-bool trie_eq( Trie trie1, Trie trie2 );         // Bad
+bool trie_eq( Trie trie1, Trie trie2 );         // Bad(Function decleration)
 bool trie_eq( Trie, Trie );                     // Good
 
 // Bad - are these pointers for modification, nullity, or arrays?
@@ -339,7 +339,7 @@ void trie_add( Trie const * trie, char const * string );
 From *21st Century C*, by Ben Klemens:
 
 ``` c
-printf( "%f\n", ( float )333334126.98 );    // 333334112.000000
+printf( "%f\n", ( float )333334126.98 );    // 333334112.000000(Type Casting)
 printf( "%f\n", ( float )333334125.31 );    // 333334112.000000
 ```
 
@@ -363,7 +363,7 @@ I think it's alright to bunch semantically-connected struct members together, th
 
 ``` c
 // Fine
-typedef struct Color {
+typedef struct Color { //Defining Structure
     char r, g, b;
 } Color;
 ```
