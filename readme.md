@@ -1273,3 +1273,4 @@ Haskell, at the forefront of language design, made the same decision to separate
 
 Embrace and appreciate what C offers, rather than attempting to graft other paradigms onto it.
 
+### There are many small small projects available online which one can practise to improve their skills.
