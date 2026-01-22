@@ -994,7 +994,8 @@ If it's valid to assign a value of one type to a variable of another type, then 
 // This compiles fine:
 struct Apple * apples = malloc( sizeof *apples );
 ```
-
+#### void Pointer
+The void pointer in C is a pointer which is not associated with any data types. It points to some data location in the storage means points to the address of variables. It is also called general purpose pointer. In C, malloc() and calloc() functions return void * or generic pointers.
 
 
 #### Give structs TitleCase names, and typedef them
